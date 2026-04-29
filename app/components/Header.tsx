@@ -26,7 +26,7 @@ export default function Header() {
                 : "text-gray-300 hover:text-white"
             }`}
           >
-            Music
+            Home
           </Link>
           <Link
             href="/explore"
@@ -47,6 +47,16 @@ export default function Header() {
             }`}
           >
             Timer
+          </Link>
+          <Link
+            href="/profile"
+            className={`font-semibold transition ${
+              pathname === "/profile"
+                ? "text-blue-400"
+                : "text-gray-300 hover:text-white"
+            }`}
+          >
+            Profile
           </Link>
           <a
             href="https://github.com"

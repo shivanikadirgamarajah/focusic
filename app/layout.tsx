@@ -3,6 +3,9 @@
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Header from "@/app/components/Header";
+import { MusicProvider } from "@/app/context/MusicContext";
+import { TimerProvider } from "@/app/context/TimerContext";
+import PersistentMusicBar from "@/app/components/PersistentMusicBar";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -24,9 +27,14 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">
-        <Header />
-        {children}
+      <body className="min-h-full flex flex-col pb-32">
+        <MusicProvider>
+          <TimerProvider>
+            <Header />
+            {children}
+            <PersistentMusicBar />
+          </TimerProvider>
+        </MusicProvider>
       </body>
     </html>
   );

@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { UserPreferences } from "./Onboarding";
+import { useTimer } from "@/app/context/TimerContext";
 
 interface PomodoroTimerProps {
   preferences?: UserPreferences | null;
@@ -11,14 +12,35 @@ export default function PomodoroTimer({ preferences }: PomodoroTimerProps) {
   const focusMinutes = preferences?.focusLength || 25;
   const breakMinutes = preferences?.breakLength || 5;
   
-  const [timerSeconds, setTimerSeconds] = useState(focusMinutes * 60);
-  const [isRunning, setIsRunning] = useState(false);
-  const [sessionType, setSessionType] = useState<"work" | "break">("work");
+  // Use global timer context instead of local state
+  const {
+    timerSeconds,
+    setTimerSeconds,
+    isRunning,
+    setIsRunning,
+    sessionType,
+    setSessionType,
+  } = useTimer();
+  
+  const previousSessionTypeRef = useRef<"work" | "break">("work");
 
   const totalSeconds = sessionType === "work" ? focusMinutes * 60 : breakMinutes * 60;
   const progress = ((totalSeconds - timerSeconds) / totalSeconds) * 100;
   const circumference = 2 * Math.PI * 90;
   const strokeDashoffset = circumference - (progress / 100) * circumference;
+
+  // Track when work session completes
+  useEffect(() => {
+    if (previousSessionTypeRef.current === "work" && sessionType === "break" && preferences) {
+      // Work session just completed, update total focus time
+      const updatedPreferences = {
+        ...preferences,
+        totalFocusTime: preferences.totalFocusTime + focusMinutes,
+      };
+      localStorage.setItem("userPreferences", JSON.stringify(updatedPreferences));
+    }
+    previousSessionTypeRef.current = sessionType;
+  }, [sessionType, preferences, focusMinutes]);
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -41,12 +63,7 @@ export default function PomodoroTimer({ preferences }: PomodoroTimerProps) {
     return () => clearInterval(interval);
   }, [isRunning, timerSeconds, sessionType, focusMinutes, breakMinutes]);
 
-  // Reset timer when preferences change
-  useEffect(() => {
-    setTimerSeconds(focusMinutes * 60);
-    setSessionType("work");
-    setIsRunning(false);
-  }, [focusMinutes, breakMinutes]);
+
 
   function formatTime(seconds: number): string {
     const mins = Math.floor(seconds / 60);
@@ -101,18 +118,31 @@ export default function PomodoroTimer({ preferences }: PomodoroTimerProps) {
                 r="90"
                 fill="none"
                 strokeWidth="8"
-                stroke={isWork ? "#60a5fa" : "#a78bfa"}
                 strokeDasharray={circumference}
                 strokeDashoffset={strokeDashoffset}
                 strokeLinecap="round"
                 style={{ transition: "stroke-dashoffset 0.3s ease" }}
-                className={isWork ? "drop-shadow-[0_0_8px_rgba(96,165,250,0.5)]" : "drop-shadow-[0_0_8px_rgba(167,139,250,0.5)]"}
+                className={`${
+                  isRunning
+                    ? isWork
+                      ? "timer-progress-work"
+                      : "timer-progress-break"
+                    : isWork
+                    ? "drop-shadow-[0_0_8px_rgba(96,165,250,0.5)]"
+                    : "drop-shadow-[0_0_8px_rgba(167,139,250,0.5)]"
+                }`}
               />
             </svg>
 
             {/* Center text */}
             <div className="absolute inset-0 flex flex-col items-center justify-center">
-              <p className="text-7xl font-black font-mono text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">
+              <p className={`text-7xl font-black font-mono ${
+                isRunning
+                  ? isWork
+                    ? "timer-text-work"
+                    : "timer-text-break"
+                  : "text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400"
+              }`}>
                 {formatTime(timerSeconds)}
               </p>
               <p className="text-lg text-gray-400 mt-2">
@@ -149,13 +179,7 @@ export default function PomodoroTimer({ preferences }: PomodoroTimerProps) {
         </div>
       </div>
 
-      <div className="pt-4 border-t border-gray-700">
-        <p className="text-center text-sm text-gray-400">
-          {isWork
-            ? "Stay focused and do great work! 🎯"
-            : "Take a breather. You've earned it! 🌟"}
-        </p>
-      </div>
+      
     </section>
   );
 }

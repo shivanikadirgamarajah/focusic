@@ -1,29 +1,20 @@
 "use client";
 
-import { useState } from "react";
 import MusicSearch from "@/app/components/MusicSearch";
 import TrackPlayer from "@/app/components/TrackPlayer";
 import TrackList from "@/app/components/TrackList";
+import { useMusic } from "@/app/context/MusicContext";
 import { Track } from "@/app/types";
 
 export default function Home() {
-  const [tracks, setTracks] = useState<Track[]>([]);
-  const [currentTrack, setCurrentTrack] = useState<Track | null>(null);
+  const { tracks, currentTrack, setTracks, setCurrentTrack, setIsPlaying, playNext } = useMusic();
 
   function handleSearch(classifiedTracks: Track[]) {
     setTracks(classifiedTracks);
-    setCurrentTrack(classifiedTracks[0]);
-  }
-
-  function handlePlayNext() {
-    if (!currentTrack || tracks.length === 0) return;
-
-    const currentIndex = tracks.findIndex(
-      (track) => track.videoId === currentTrack.videoId
-    );
-
-    const nextIndex = (currentIndex + 1) % tracks.length;
-    setCurrentTrack(tracks[nextIndex]);
+    if (classifiedTracks.length > 0) {
+      setCurrentTrack(classifiedTracks[0]);
+      setIsPlaying(true);
+    }
   }
 
   return (
@@ -39,7 +30,7 @@ export default function Home() {
         <MusicSearch onSearch={handleSearch} />
 
         {currentTrack && (
-          <TrackPlayer track={currentTrack} onNext={handlePlayNext} />
+          <TrackPlayer track={currentTrack} onNext={playNext} />
         )}
       </div>
 

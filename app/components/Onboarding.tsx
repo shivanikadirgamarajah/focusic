@@ -7,26 +7,31 @@ interface OnboardingProps {
 }
 
 export interface UserPreferences {
+  name: string;
   workType: string;
   focusLength: number;
   breakLength: number;
+  totalFocusTime: number;
   completed: boolean;
 }
 
 export default function Onboarding({ onComplete }: OnboardingProps) {
   const [step, setStep] = useState(1);
+  const [name, setName] = useState("");
   const [workType, setWorkType] = useState("");
   const [focusLength, setFocusLength] = useState(25);
   const [breakLength, setBreakLength] = useState(5);
 
   function handleNext() {
-    if (step < 3) {
+    if (step < 4) {
       setStep(step + 1);
     } else {
       const preferences: UserPreferences = {
+        name,
         workType,
         focusLength,
         breakLength,
+        totalFocusTime: 0,
         completed: true,
       };
       localStorage.setItem("userPreferences", JSON.stringify(preferences));
@@ -41,8 +46,25 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50">
       <div className="bg-gradient-to-br from-gray-900 to-gray-950 border border-gray-700 rounded-2xl p-8 max-w-md w-full mx-4 shadow-2xl">
-        {/* Step 1: Work Type */}
+        {/* Step 1: Name */}
         {step === 1 && (
+          <div className="space-y-6">
+            <div>
+              <h2 className="text-3xl font-bold text-white mb-2">What's your name? 👋</h2>
+              <p className="text-gray-400">Let's personalize your experience</p>
+            </div>
+            <input
+              type="text"
+              placeholder="Enter your name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="w-full rounded-lg bg-gray-700 text-white px-4 py-3 font-semibold placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+            />
+          </div>
+        )}
+
+        {/* Step 2: Work Type */}
+        {step === 2 && (
           <div className="space-y-6">
             <div>
               <h2 className="text-3xl font-bold text-white mb-2">What do you do? 💼</h2>
@@ -66,8 +88,8 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
           </div>
         )}
 
-        {/* Step 2: Focus Length */}
-        {step === 2 && (
+        {/* Step 3: Focus Length */}
+        {step === 3 && (
           <div className="space-y-6">
             <div>
               <h2 className="text-3xl font-bold text-white mb-2">Focus Time ⏱️</h2>
@@ -90,8 +112,8 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
           </div>
         )}
 
-        {/* Step 3: Break Length */}
-        {step === 3 && (
+        {/* Step 4: Break Length */}
+        {step === 4 && (
           <div className="space-y-6">
             <div>
               <h2 className="text-3xl font-bold text-white mb-2">Break Time ☕</h2>
@@ -126,19 +148,16 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
           )}
           <button
             onClick={handleNext}
-            disabled={
-              (step === 1 && !name) ||
-              (step === 2 && !workType)
-            }
+            disabled={(step === 1 && !name) || (step === 2 && !workType)}
             className="flex-1 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed px-4 py-2 font-semibold text-white transition"
           >
-            {step === 4 ? "Get Started 🚀" : "Next →"}
+            {step === 5 ? "Get Started 🚀" : "Next →"}
           </button>
         </div>
 
         {/* Progress */}
         <div className="mt-6 flex gap-2 justify-center">
-          {[1, 2, 3, 4].map((s) => (
+          {[1, 2, 3, 4, 5].map((s) => (
             <div
               key={s}
               className={`h-2 w-2 rounded-full transition ${

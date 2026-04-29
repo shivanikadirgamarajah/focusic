@@ -4,9 +4,12 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import PomodoroTimer from "@/app/components/PomodoroTimer";
 import Onboarding, { UserPreferences } from "@/app/components/Onboarding";
+import QuickSettings from "@/app/components/QuickSettings";
+import { useMusic } from "@/app/context/MusicContext";
 
 export default function TimerPage() {
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showQuickSettings, setShowQuickSettings] = useState(false);
   const [preferences, setPreferences] = useState<UserPreferences | null>(null);
 
   useEffect(() => {
@@ -26,11 +29,18 @@ export default function TimerPage() {
   return (
     <main className="min-h-screen bg-black text-white p-8">
       {showOnboarding && <Onboarding onComplete={handleOnboardingComplete} />}
+      {showQuickSettings && (
+        <QuickSettings
+          preferences={preferences}
+          onSave={setPreferences}
+          onClose={() => setShowQuickSettings(false)}
+        />
+      )}
 
       <div className="mx-auto max-w-3xl space-y-8">
         <section>
           <h1 className="text-4xl font-bold">
-            Pomodoro Timer {preferences?.name && `for ${preferences.name}`} 🍅
+            Pomodoro Timer
           </h1>
           <p className="mt-2 text-gray-400">
             {preferences?.workType && `Working on: ${preferences.workType}`}
@@ -44,16 +54,13 @@ export default function TimerPage() {
             href="/"
             className="rounded-lg border border-gray-700 px-5 py-3 font-semibold hover:bg-gray-900 transition"
           >
-            ← Back to Music
+            ← Back to Home
           </Link>
           <button
-            onClick={() => {
-              localStorage.removeItem("userPreferences");
-              setShowOnboarding(true);
-            }}
+            onClick={() => setShowQuickSettings(true)}
             className="rounded-lg border border-gray-700 px-5 py-3 font-semibold hover:bg-gray-900 transition"
           >
-            ⚙️ Reconfigure
+            ⏱️ Adjust Timer
           </button>
         </div>
       </div>

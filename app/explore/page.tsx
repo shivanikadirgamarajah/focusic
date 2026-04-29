@@ -36,7 +36,7 @@ const categories = [
 export default function ExplorePage() {
   return (
     <main className="min-h-screen bg-black text-white p-8 flex-1">
-      <div className="mx-auto max-w-6xl">
+      
         <section className="mb-12">
           <h2 className="text-4xl font-bold mb-2">Explor Ambience</h2>
           <p className="text-gray-400">
@@ -55,7 +55,7 @@ export default function ExplorePage() {
             </Link>
           ))}
         </div>
-      </div>
+    
     </main>
   );
 }

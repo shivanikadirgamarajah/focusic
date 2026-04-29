@@ -27,8 +27,8 @@ export default function Home() {
   }
 
   return (
-    <main className="min-h-screen bg-black text-white p-8 flex-1">
-      <div className="mx-auto max-w-3xl space-y-8">
+    <main className="min-h-screen bg-black text-white flex-1 flex flex-col">
+      <div className="mx-auto max-w-3xl space-y-8 px-8 py-12 flex-1">
         <section>
           <h2 className="text-3xl font-bold">Discover Focus Music</h2>
           <p className="mt-2 text-gray-400">
@@ -41,13 +41,13 @@ export default function Home() {
         {currentTrack && (
           <TrackPlayer track={currentTrack} onNext={handlePlayNext} />
         )}
-
-        <TrackList
-          tracks={tracks}
-          currentTrack={currentTrack}
-          onSelectTrack={setCurrentTrack}
-        />
       </div>
+
+      <TrackList
+        tracks={tracks}
+        currentTrack={currentTrack}
+        onSelectTrack={setCurrentTrack}
+      />
     </main>
   );
 }

@@ -17,13 +17,15 @@ User mood/task: ${mood}
 Classify these tracks:
 ${JSON.stringify(tracks, null, 2)}
 
-Return ONLY valid JSON. No markdown.
+Return ONLY valid JSON. No markdown. PRESERVE the videoId and thumbnail fields!
 
-Format:
+Format - include ALL original fields plus new ones:
 [
   {
     "videoId": "string",
     "title": "string",
+    "thumbnail": "string (keep the original thumbnail URL)",
+    "channel": "string",
     "genre": "ambient | lofi | piano | synthwave | nature | drone | jazz | other",
     "focusScore": 8,
     "reason": "Good for focus because...",

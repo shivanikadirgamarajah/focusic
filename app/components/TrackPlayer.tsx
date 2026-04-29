@@ -1,0 +1,71 @@
+"use client";
+
+import { useState } from "react";
+import { Track } from "@/app/types";
+
+interface TrackPlayerProps {
+  track: Track;
+  onNext: () => void;
+}
+
+export default function TrackPlayer({ track, onNext }: TrackPlayerProps) {
+  const [showInsights, setShowInsights] = useState(false);
+
+  return (
+    <section className="space-y-4">
+      <h2 className="text-2xl font-bold">{track.title}</h2>
+
+      <div className="relative aspect-video bg-black rounded-lg overflow-hidden">
+        <iframe
+          width="100%"
+          height="100%"
+          src={`https://www.youtube.com/embed/${track.videoId}?autoplay=0`}
+          title={track.title}
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowFullScreen
+          className="border-0"
+        ></iframe>
+      </div>
+
+      <div className="flex gap-3">
+        <button
+          onClick={() => setShowInsights(!showInsights)}
+          className="rounded-lg bg-purple-600 px-4 py-2 font-semibold text-white hover:bg-purple-700 transition"
+        >
+           Insights
+        </button>
+        <button
+          onClick={onNext}
+          className="rounded-lg bg-blue-600 px-4 py-2 font-semibold text-white hover:bg-blue-700 transition"
+        >
+          Shuffle
+        </button>
+      </div>
+
+      {showInsights && (
+        <div className="space-y-2 text-sm bg-gray-900 rounded-lg p-4 border border-gray-700">
+          {track.genre && (
+            <p>
+              <strong>Genre:</strong> {track.genre}
+            </p>
+          )}
+          {track.focusScore && (
+            <p>
+              <strong>Focus score:</strong> {track.focusScore}/10
+            </p>
+          )}
+          {track.bestFor && (
+            <p>
+              <strong>Best for:</strong> {track.bestFor}
+            </p>
+          )}
+          {track.reason && (
+            <p>
+              <strong>Why:</strong> {track.reason}
+            </p>
+          )}
+        </div>
+      )}
+    </section>
+  );
+}

@@ -8,6 +8,24 @@ interface PomodoroTimerProps {
   preferences?: UserPreferences | null;
 }
 
+function playBeep() {
+  const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+  const oscillator = audioContext.createOscillator();
+  const gainNode = audioContext.createGain();
+
+  oscillator.connect(gainNode);
+  gainNode.connect(audioContext.destination);
+
+  oscillator.frequency.value = 800;
+  oscillator.type = "sine";
+
+  gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+  gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+
+  oscillator.start(audioContext.currentTime);
+  oscillator.stop(audioContext.currentTime + 0.5);
+}
+
 export default function PomodoroTimer({ preferences }: PomodoroTimerProps) {
   const focusMinutes = preferences?.focusLength || 25;
   const breakMinutes = preferences?.breakLength || 5;
@@ -52,6 +70,7 @@ export default function PomodoroTimer({ preferences }: PomodoroTimerProps) {
             const newType = sessionType === "work" ? "break" : "work";
             setSessionType(newType);
             setIsRunning(false);
+            playBeep();
             alert(`${sessionType} session complete! Time for a ${newType}!`);
             return newType === "work" ? focusMinutes * 60 : breakMinutes * 60;
           }
@@ -174,7 +193,7 @@ export default function PomodoroTimer({ preferences }: PomodoroTimerProps) {
             onClick={switchSession}
             className="rounded-lg bg-blue-600 hover:bg-blue-700 px-4 py-3 font-semibold text-white transition transform hover:scale-105 active:scale-95 shadow-lg shadow-blue-600/50"
           >
-            {isWork ? "☕ Break" : "⚡ Work"}
+            {isWork ? " Break" : " Work"}
           </button>
         </div>
       </div>

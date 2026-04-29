@@ -29,7 +29,7 @@ export default function QuickSettings({ preferences, onSave, onClose }: QuickSet
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50">
       <div className="bg-gradient-to-br from-gray-900 to-gray-950 border border-gray-700 rounded-2xl p-8 max-w-md w-full mx-4 shadow-2xl">
-        <h2 className="text-3xl font-bold text-white mb-6">Adjust Timer ⏱️</h2>
+        <h2 className="text-3xl font-bold text-white mb-6">Adjust Timer </h2>
 
         {/* Focus Length */}
         <div className="space-y-4 mb-8">

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import MusicSearch from "@/app/components/MusicSearch";
 import TrackPlayer from "@/app/components/TrackPlayer";
 import TrackList from "@/app/components/TrackList";
+import TypedText from "@/app/components/TypedText";
 import { useMusic } from "@/app/context/MusicContext";
 import { Track } from "@/app/types";
 
@@ -25,7 +26,7 @@ export default function Home() {
 
       if (searchHistory.length === 0 && listenHistory.length === 0) {
         // No history, load default recommendations
-        loadDefaultRecommendations();
+        await loadDefaultRecommendations();
         return;
       }
 
@@ -40,10 +41,10 @@ export default function Home() {
       
       // Search for music based on first recommendation
       const firstRecommendation = recommendations.split(",")[0].trim();
-      await performSearch(firstRecommendation);
+      await performSearch(firstRecommendation, false);
     } catch (error) {
       console.error("Error loading recommendations:", error);
-      loadDefaultRecommendations();
+      await loadDefaultRecommendations();
     } finally {
       setIsLoadingRecommendations(false);
     }
@@ -78,10 +79,12 @@ export default function Home() {
       }
     } catch (error) {
       console.error("Error loading default recommendations:", error);
+    } finally {
+      setIsLoadingRecommendations(false);
     }
   }
 
-  async function performSearch(query: string) {
+  async function performSearch(query: string, autoPlay: boolean = false) {
     try {
       const ytRes = await fetch(
         `/api/youtube/search?q=${encodeURIComponent(query + " ambient focus music")}`
@@ -106,7 +109,9 @@ export default function Home() {
         setTracks(sorted);
         if (sorted.length > 0) {
           setCurrentTrack(sorted[0]);
-          setIsPlaying(true);
+          if (autoPlay) {
+            setIsPlaying(true);
+          }
         }
       }
     } catch (error) {
@@ -127,11 +132,9 @@ export default function Home() {
     <main className="min-h-screen bg-black text-white flex-1 flex flex-col">
       <div className="mx-auto max-w-3xl space-y-8 px-8 py-12 flex-1">
         <section>
-          <h2 className="text-3xl font-bold">Discover Focus Music</h2>
+          <h2 className="text-3xl font-bold">Discover Focus Music Based on</h2>
           <p className="mt-2 text-gray-400">
-            {isLoadingRecommendations
-              ? "Loading personalized recommendations..."
-              : "Tell the app what you're doing, and it will recommend focus music."}
+            {isLoadingRecommendations && "Loading personalized recommendations..."}
           </p>
         </section>
 

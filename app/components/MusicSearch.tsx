@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import TypedText from "./TypedText";
 import { Track } from "@/app/types";
 
 interface MusicSearchProps {
@@ -43,7 +44,7 @@ export default function MusicSearch({ onSearch, loading = false }: MusicSearchPr
       console.log("AI response data:", aiData);
       
       if (!aiData.result) {
-        throw new Error("No result in AI response");
+        throw new Error("No Fresult in AI response");
       }
       
       const classifiedTracks = JSON.parse(aiData.result);
@@ -60,13 +61,31 @@ export default function MusicSearch({ onSearch, loading = false }: MusicSearchPr
 
   return (
     <section className="flex gap-3">
-      <input
-        value={mood}
-        onChange={(e) => setMood(e.target.value)}
-        onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-        placeholder="coding, studying, deep work..."
-        className="flex-1 rounded-lg px-4 py-3 text-black bg-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
-      />
+      <div className="relative flex-1">
+        <input
+          value={mood}
+          onChange={(e) => setMood(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+          placeholder=""
+          className="w-full rounded-lg px-4 py-3 text-black bg-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+        {!mood && (
+          <div className="absolute left-4 top-3 text-gray-500 pointer-events-none">
+            <TypedText
+              strings={[
+                "what you are doing",
+                "how you are feeling",
+                "what vibe you want"
+              ]}
+              typeSpeed={30}
+              backSpeed={20}
+              backDelay={1500}
+              loop={true}
+              showCursor={true}
+            />
+          </div>
+        )}
+      </div>
       <button
         onClick={handleSearch}
         disabled={isLoading || !mood || loading}

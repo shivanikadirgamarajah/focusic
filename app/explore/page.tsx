@@ -51,7 +51,7 @@ export default function ExplorePage() {
     <main className="min-h-screen bg-black text-white p-8 flex-1">
       
         <section className="mb-12">
-          <h2 className="text-4xl font-bold mb-2">Explor Ambience</h2>
+          <h2 className="text-2xl font-bold mb-2">Explore Ambience</h2>
           <p className="text-gray-400">
             Discover curated music collections for every work mode
           </p>

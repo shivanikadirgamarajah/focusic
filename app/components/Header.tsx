@@ -6,14 +6,14 @@ export default function Header() {
 
   return (
     <header className="border-b border-gray-800 bg-gradient-to-r from-gray-950 to-black">
-      <div className="mx-auto max-w-6xl px-8 py-4 flex items-center justify-between">
+      <div className="mx-auto max-w-6xl pl-0 pr-0 py-4 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2 group">
           
           <div>
-            <h1 className="text-2xl font-bold text-white group-hover:text-blue-400 transition">
+            <h1 className="text-4xl font-bold text-white group-hover:text-blue-400 transition">
               Focusic
             </h1>
-            <p className="text-xs text-gray-400">Ambient music for focus</p>
+            <p className="text-7xs text-gray-400">Ambient music for focus</p>
           </div>
         </Link>
 

@@ -60,7 +60,7 @@ export default function TimerPage() {
             onClick={() => setShowQuickSettings(true)}
             className="rounded-lg border border-gray-700 px-5 py-3 font-semibold hover:bg-gray-900 transition"
           >
-            ⏱️ Adjust Timer
+            Adjust Timer
           </button>
         </div>
       </div>

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import ActivityCalendar from "@/app/components/ActivityCalendar";
 import { UserPreferences } from "@/app/components/Onboarding";
 
 export default function ProfilePage() {
@@ -159,6 +160,10 @@ export default function ProfilePage() {
               {Math.floor(preferences.totalFocusTime / 60)}h {preferences.totalFocusTime % 60}m
             </p>
           </div>
+        </div>
+
+        <div className="rounded-lg border border-gray-700 p-6">
+          <ActivityCalendar />
         </div>
 
         <div className="flex gap-3">

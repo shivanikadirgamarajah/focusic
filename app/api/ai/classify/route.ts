@@ -12,10 +12,20 @@ export async function POST(req: Request) {
     if (!tracks || !Array.isArray(tracks) || tracks.length === 0) {
       console.error("Invalid tracks input:", tracks);
       return NextResponse.json(
-        { error: "Invalid tracks input" },
+        { error: "Invalid tracks input", details: "No tracks provided" },
         { status: 400 }
       );
     }
+
+    if (!process.env.GROQ_API_KEY) {
+      console.error("GROQ_API_KEY not configured");
+      return NextResponse.json(
+        { error: "API configuration error", details: "GROQ_API_KEY not set" },
+        { status: 500 }
+      );
+    }
+
+    console.log("Classifying tracks for mood:", mood, "Track count:", tracks.length);
 
     const prompt = `
 You are an AI music recommender for a focus timer app.
@@ -84,9 +94,22 @@ Format - include ALL original fields plus new ones:
   } catch (error) {
     console.error("Classify API error:", error);
     const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorDetails = error instanceof Error ? error.stack : "";
+    
+    // Log detailed error for debugging
+    console.error("Full error object:", {
+      message: errorMessage,
+      stack: errorDetails,
+      type: error instanceof Error ? error.constructor.name : typeof error,
+      error: error,
+    });
 
     return NextResponse.json(
-      { error: "Failed to classify tracks", details: errorMessage },
+      { 
+        error: "Failed to classify tracks", 
+        details: errorMessage,
+        stack: process.env.NODE_ENV === "development" ? errorDetails : undefined
+      },
       { status: 500 }
     );
   }

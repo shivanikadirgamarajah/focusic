@@ -59,7 +59,7 @@ export default function ExplorePage() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {categories.map((category, index) => (
-            <Link key={index} href={`/explore/${category.title.toLowerCase()}`}>
+            <Link key={index} href={`/explore/${encodeURIComponent(category.title.toLowerCase())}`}>
               <div
                 className={`${category.color} h-64 rounded-xl overflow-hidden cursor-pointer transform transition hover:scale-105 hover:shadow-2xl flex items-center justify-center`}
               >

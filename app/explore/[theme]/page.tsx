@@ -16,15 +16,41 @@ const themeDescriptions: Record<string, string> = {
   fantasy: "fantasy adventure magical music",
   paris: "parisian cafe and french music",
   medieval: "medieval tavern and fantasy realm music",
-  Øneheart: "Øneheart",
+  Oneheart: "Oneheart",
   dramatic: "intense dramatic orchestral and cinematic music",
   mario: "super mario and retro game music",
   
 };
 
+const themeColors: Record<string, string> = {
+  rain: "from-slate-900 to-slate-800",
+  minecraft: "from-green-900 to-green-800",
+  airplane: "from-sky-900 to-sky-800",
+  nature: "from-emerald-900 to-emerald-800",
+  fantasy: "from-purple-900 to-purple-800",
+  paris: "from-rose-900 to-rose-800",
+  medieval: "from-amber-900 to-amber-800",
+  oneheart: "from-indigo-900 to-indigo-800",
+  dramatic: "from-red-900 to-red-800",
+  mario: "from-red-900 to-red-800",
+};
+
+const headingColors: Record<string, string> = {
+  rain: "from-amber-400 to-orange-400",
+  minecraft: "from-pink-400 to-rose-400",
+  airplane: "from-orange-400 to-amber-400",
+  nature: "from-pink-400 to-fuchsia-400",
+  fantasy: "from-yellow-300 to-lime-400",
+  paris: "from-teal-400 to-cyan-400",
+  medieval: "from-blue-400 to-indigo-400",
+  oneheart: "from-yellow-400 to-orange-400",
+  dramatic: "from-cyan-400 to-teal-400",
+  mario: "from-cyan-400 to-blue-400",
+};
+
 export default function ThemePage() {
   const params = useParams();
-  const theme = params.theme as string;
+  const theme = decodeURIComponent(params.theme as string);
   const [tracks, setTracks] = useState<Track[]>([]);
   const [currentTrack, setCurrentTrack] = useState<Track | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -59,7 +85,30 @@ export default function ThemePage() {
       });
       
       if (!classifyRes.ok) {
-        throw new Error(`Classify API failed: ${classifyRes.statusText}`);
+        const contentType = classifyRes.headers.get("content-type");
+        let errorData = { error: "Unknown error" };
+        
+        if (contentType && contentType.includes("application/json")) {
+          try {
+            errorData = await classifyRes.json();
+          } catch (e) {
+            console.error("Failed to parse error as JSON:", e);
+            errorData = { error: `HTTP ${classifyRes.status}` };
+          }
+        } else {
+          const text = await classifyRes.text();
+          console.error("Non-JSON error response:", text);
+          errorData = { error: text || `HTTP ${classifyRes.status}` };
+        }
+        
+        console.error("Classify API error response:", {
+          status: classifyRes.status,
+          statusText: classifyRes.statusText,
+          contentType,
+          errorData,
+        });
+        
+        throw new Error(`Classify API failed: ${classifyRes.status} - ${errorData?.details || errorData?.error || classifyRes.statusText}`);
       }
 
       const classifyData = await classifyRes.json();
@@ -77,6 +126,37 @@ export default function ThemePage() {
       setCurrentTrack(sorted[0] || null);
     } catch (error) {
       console.error("Error:", error);
+      
+      // If AI classification fails, try with a simpler approach using just YouTube results
+      if (error instanceof Error && error.message.includes("Classify API failed")) {
+        console.log("Falling back to unclassified tracks...");
+        // Try to load the raw videos without AI classification
+        try {
+          const description = themeDescriptions[theme] || theme;
+          const searchRes = await fetch(
+            `/api/youtube/search?q=${encodeURIComponent(description)}`
+          );
+          if (searchRes.ok) {
+            const { videos } = await searchRes.json();
+            if (videos && videos.length > 0) {
+              // Use videos as-is with default focus scores
+              const fallbackTracks = videos.map((video: any, index: number) => ({
+                ...video,
+                focusScore: 7 - (index * 0.5), // Decrease score for each track
+                genre: "ambient",
+                reason: "From theme search results",
+                bestFor: "focus",
+              }));
+              setTracks(fallbackTracks);
+              setCurrentTrack(fallbackTracks[0]);
+              return;
+            }
+          }
+        } catch (fallbackError) {
+          console.error("Fallback search also failed:", fallbackError);
+        }
+      }
+      
       alert(`Error: ${error instanceof Error ? error.message : "Unknown error"}`);
     } finally {
       setIsLoading(false);
@@ -95,14 +175,12 @@ export default function ThemePage() {
   }
 
   return (
-    <main className="min-h-screen bg-black text-white flex-1 flex flex-col">
+    <main className={`min-h-screen text-white flex-1 flex flex-col bg-gradient-to-b ${themeColors[theme.toLowerCase()] || "from-gray-900 to-gray-800"}`}>
       <div className="mx-auto max-w-3xl space-y-8 px-8 py-12 flex-1 w-full">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-3xl font-bold capitalize">{theme} Ambience</h2>
-            <p className="mt-2 text-gray-400">
-              {isLoading ? "Loading..." : `${tracks.length} tracks found`}
-            </p>
+            <h2 className={`text-5xl font-black bg-clip-text text-transparent bg-gradient-to-r ${headingColors[theme.toLowerCase()] || "from-blue-400 to-purple-400"} capitalize`}>{theme} Ambience</h2>
+            <p className="text-gray-400 mt-2">Curated tracks to enhance your focus</p>
           </div>
           <Link
             href="/explore"

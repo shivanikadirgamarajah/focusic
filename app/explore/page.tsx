@@ -31,6 +31,19 @@ const categories = [
     title: "Medieval",
     color: "bg-amber-700",
   },
+  {
+    title: "Øneheart",
+    color: "bg-indigo-800",
+  },
+  {
+    title: "Dramatic",
+    color: "bg-red-700",
+  },
+  {
+    title: "Mario",
+    color: "bg-red-600",
+  },
+  
 ];
 
 export default function ExplorePage() {

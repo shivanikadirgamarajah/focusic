@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Track } from "@/app/types";
+import { useMusic } from "@/app/context/MusicContext";
 
 interface TrackPlayerProps {
   track: Track;
@@ -10,12 +11,21 @@ interface TrackPlayerProps {
 
 export default function TrackPlayer({ track, onNext }: TrackPlayerProps) {
   const [showInsights, setShowInsights] = useState(false);
+  const { setIsPlaying, setCurrentTrack } = useMusic();
+
+  function handlePlayerClick() {
+    setCurrentTrack(track);
+    setIsPlaying(true);
+  }
 
   return (
     <section className="space-y-4">
       <h2 className="text-2xl font-bold">{track.title}</h2>
 
-      <div className="relative aspect-video bg-black rounded-lg overflow-hidden">
+      <div 
+        className="relative aspect-video bg-black rounded-lg overflow-hidden cursor-pointer hover:ring-2 hover:ring-blue-500 transition"
+        onClick={handlePlayerClick}
+      >
         <iframe
           width="100%"
           height="100%"
@@ -24,6 +34,7 @@ export default function TrackPlayer({ track, onNext }: TrackPlayerProps) {
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
           allowFullScreen
           className="border-0"
+          style={{ pointerEvents: 'none' }}
         ></iframe>
       </div>
 

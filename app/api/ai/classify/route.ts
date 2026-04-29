@@ -9,6 +9,14 @@ export async function POST(req: Request) {
   try {
     const { tracks, mood } = await req.json();
 
+    if (!tracks || !Array.isArray(tracks) || tracks.length === 0) {
+      console.error("Invalid tracks input:", tracks);
+      return NextResponse.json(
+        { error: "Invalid tracks input" },
+        { status: 400 }
+      );
+    }
+
     const prompt = `
 You are an AI music recommender for a focus timer app.
 
@@ -47,14 +55,38 @@ Format - include ALL original fields plus new ones:
 
     const text = completion.choices[0]?.message?.content ?? "[]";
 
+    // Strip markdown code blocks if present
+    let cleanedText = text.trim();
+    if (cleanedText.startsWith("```json")) {
+      cleanedText = cleanedText.slice(7); // Remove ```json
+    } else if (cleanedText.startsWith("```")) {
+      cleanedText = cleanedText.slice(3); // Remove ```
+    }
+    if (cleanedText.endsWith("```")) {
+      cleanedText = cleanedText.slice(0, -3); // Remove trailing ```
+    }
+    cleanedText = cleanedText.trim();
+
+    // Validate JSON
+    try {
+      JSON.parse(cleanedText);
+    } catch (parseError) {
+      console.error("JSON parse error:", parseError, "Raw text:", cleanedText);
+      return NextResponse.json(
+        { error: "Invalid JSON from AI", details: cleanedText.slice(0, 200) },
+        { status: 500 }
+      );
+    }
+
     return NextResponse.json({
-      result: text,
+      result: cleanedText,
     });
   } catch (error) {
-    console.error(error);
+    console.error("Classify API error:", error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
 
     return NextResponse.json(
-      { error: "Failed to classify tracks" },
+      { error: "Failed to classify tracks", details: errorMessage },
       { status: 500 }
     );
   }

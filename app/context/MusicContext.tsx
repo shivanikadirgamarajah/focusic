@@ -16,9 +16,19 @@ interface MusicContextType {
 const MusicContext = createContext<MusicContextType | undefined>(undefined);
 
 export function MusicProvider({ children }: { children: ReactNode }) {
-  const [currentTrack, setCurrentTrack] = useState<Track | null>(null);
+  const [currentTrack, setCurrentTrackState] = useState<Track | null>(null);
   const [tracks, setTracks] = useState<Track[]>([]);
   const [isPlaying, setIsPlaying] = useState(false);
+
+  function setCurrentTrack(track: Track | null) {
+    setCurrentTrackState(track);
+    // Track listen in history when a track is played
+    if (track) {
+      const listenHistory = JSON.parse(localStorage.getItem("listenHistory") || "[]");
+      listenHistory.push(track.title);
+      localStorage.setItem("listenHistory", JSON.stringify(listenHistory.slice(-20))); // Keep last 20
+    }
+  }
 
   function playNext() {
     if (!currentTrack || tracks.length === 0) return;

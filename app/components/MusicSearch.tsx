@@ -15,17 +15,26 @@ export default function MusicSearch({ onSearch, loading = false }: MusicSearchPr
   async function handleSearch() {
     if (!mood) return;
     
+    // Track search in history
+    const searchHistory = JSON.parse(localStorage.getItem("searchHistory") || "[]");
+    searchHistory.push(mood);
+    localStorage.setItem("searchHistory", JSON.stringify(searchHistory.slice(-20))); // Keep last 20
+    
     setIsLoading(true);
     try {
       const ytRes = await fetch(
         `/api/youtube/search?q=${encodeURIComponent(mood + " ambient focus music")}`
       );
-      const youtubeTracks = await ytRes.json();
+      const { videos } = await ytRes.json();
+
+      if (!Array.isArray(videos) || videos.length === 0) {
+        throw new Error("No tracks found");
+      }
 
       const aiRes = await fetch("/api/ai/classify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mood, tracks: youtubeTracks }),
+        body: JSON.stringify({ mood, tracks: videos }),
       });
 
       console.log("AI response status:", aiRes.status);

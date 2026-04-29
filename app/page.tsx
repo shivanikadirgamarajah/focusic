@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import MusicSearch from "@/app/components/MusicSearch";
 import TrackPlayer from "@/app/components/TrackPlayer";
 import TrackList from "@/app/components/TrackList";
@@ -8,8 +9,113 @@ import { Track } from "@/app/types";
 
 export default function Home() {
   const { tracks, currentTrack, setTracks, setCurrentTrack, setIsPlaying, playNext } = useMusic();
+  const [isLoadingRecommendations, setIsLoadingRecommendations] = useState(false);
+  const [hasPerformedSearch, setHasPerformedSearch] = useState(false);
+
+  useEffect(() => {
+    // Load personalized recommendations on mount based on history
+    loadRecommendations();
+  }, []);
+
+  async function loadRecommendations() {
+    try {
+      setIsLoadingRecommendations(true);
+      const searchHistory = JSON.parse(localStorage.getItem("searchHistory") || "[]");
+      const listenHistory = JSON.parse(localStorage.getItem("listenHistory") || "[]");
+
+      if (searchHistory.length === 0 && listenHistory.length === 0) {
+        // No history, load default recommendations
+        loadDefaultRecommendations();
+        return;
+      }
+
+      // Get AI recommendations based on history
+      const res = await fetch("/api/ai/recommend", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ searchHistory, listenHistory }),
+      });
+
+      const { recommendations } = await res.json();
+      
+      // Search for music based on first recommendation
+      const firstRecommendation = recommendations.split(",")[0].trim();
+      await performSearch(firstRecommendation);
+    } catch (error) {
+      console.error("Error loading recommendations:", error);
+      loadDefaultRecommendations();
+    } finally {
+      setIsLoadingRecommendations(false);
+    }
+  }
+
+  async function loadDefaultRecommendations() {
+    try {
+      const res = await fetch(
+        `/api/youtube/search?q=${encodeURIComponent("ambient focus music lofi beats")}`
+      );
+      const { videos } = await res.json();
+
+      if (!videos || videos.length === 0) return;
+
+      const classifyRes = await fetch("/api/ai/classify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          tracks: videos,
+          mood: "ambient focus music",
+        }),
+      });
+
+      const classifyData = await classifyRes.json();
+      if (classifyData.result) {
+        const classified = JSON.parse(classifyData.result);
+        const sorted = classified.sort((a: Track, b: Track) => (b.focusScore || 0) - (a.focusScore || 0));
+        setTracks(sorted);
+        if (sorted.length > 0) {
+          setCurrentTrack(sorted[0]);
+        }
+      }
+    } catch (error) {
+      console.error("Error loading default recommendations:", error);
+    }
+  }
+
+  async function performSearch(query: string) {
+    try {
+      const ytRes = await fetch(
+        `/api/youtube/search?q=${encodeURIComponent(query + " ambient focus music")}`
+      );
+      const { videos } = await ytRes.json();
+
+      if (!Array.isArray(videos) || videos.length === 0) {
+        loadDefaultRecommendations();
+        return;
+      }
+
+      const aiRes = await fetch("/api/ai/classify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mood: query, tracks: videos }),
+      });
+
+      const aiData = await aiRes.json();
+      if (aiData.result) {
+        const classifiedTracks = JSON.parse(aiData.result);
+        const sorted = classifiedTracks.sort((a: Track, b: Track) => (b.focusScore || 0) - (a.focusScore || 0));
+        setTracks(sorted);
+        if (sorted.length > 0) {
+          setCurrentTrack(sorted[0]);
+          setIsPlaying(true);
+        }
+      }
+    } catch (error) {
+      console.error("Error performing search:", error);
+    }
+  }
 
   function handleSearch(classifiedTracks: Track[]) {
+    setHasPerformedSearch(true);
     setTracks(classifiedTracks);
     if (classifiedTracks.length > 0) {
       setCurrentTrack(classifiedTracks[0]);
@@ -23,13 +129,15 @@ export default function Home() {
         <section>
           <h2 className="text-3xl font-bold">Discover Focus Music</h2>
           <p className="mt-2 text-gray-400">
-            Tell the app what you're doing, and it will recommend focus music.
+            {isLoadingRecommendations
+              ? "Loading personalized recommendations..."
+              : "Tell the app what you're doing, and it will recommend focus music."}
           </p>
         </section>
 
-        <MusicSearch onSearch={handleSearch} />
+        <MusicSearch onSearch={handleSearch} loading={isLoadingRecommendations} />
 
-        {currentTrack && (
+        {hasPerformedSearch && currentTrack && (
           <TrackPlayer track={currentTrack} onNext={playNext} />
         )}
       </div>

@@ -78,7 +78,7 @@ export default function TrackList({
 
   return (
     <section className="w-full bg-black py-12">
-      <h3 className="mb-8 text-3xl font-bold sticky top-0 pt-8 bg-black z-10 px-4">Recommendations</h3>
+      
 
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-3 2xl:grid-cols-7 gap-4 auto-rows-fr">
         {tracks.map((track) => (

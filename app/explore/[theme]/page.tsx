@@ -7,6 +7,7 @@ import MusicSearch from "@/app/components/MusicSearch";
 import TrackPlayer from "@/app/components/TrackPlayer";
 import TrackList from "@/app/components/TrackList";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
+import { useMusic } from "@/app/context/MusicContext";
 import { Track } from "@/app/types";
 
 const themeDescriptions: Record<string, string> = {
@@ -56,8 +57,7 @@ const headingColors: Record<string, string> = {
 export default function ThemePage() {
   const params = useParams();
   const theme = decodeURIComponent(params.theme as string);
-  const [tracks, setTracks] = useState<Track[]>([]);
-  const [currentTrack, setCurrentTrack] = useState<Track | null>(null);
+  const { tracks, currentTrack, setTracks, setCurrentTrack, setIsPlaying } = useMusic();
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -79,13 +79,26 @@ export default function ThemePage() {
       const searchRes = await fetch(
         `/api/youtube/search?q=${encodeURIComponent(query)}`
       );
+      
       if (!searchRes.ok) {
-        throw new Error(`Search API failed: ${searchRes.statusText}`);
+        // Get detailed error info
+        let errorDetails = "";
+        try {
+          const errorData = await searchRes.json();
+          errorDetails = errorData.error || errorData.details || JSON.stringify(errorData);
+        } catch (e) {
+          errorDetails = await searchRes.text();
+        }
+        
+        console.error(`Search API error (${searchRes.status}):`, errorDetails);
+        throw new Error(`Search API failed: ${searchRes.status} - ${errorDetails || searchRes.statusText}`);
       }
+      
       const { videos } = await searchRes.json();
 
       if (!Array.isArray(videos) || videos.length === 0) {
         setError("No tracks found for this theme");
+        setIsLoading(false);
         return;
       }
 
@@ -121,6 +134,7 @@ export default function ThemePage() {
             
             setTracks(sorted);
             setCurrentTrack(sorted[0] || null);
+            setIsPlaying(true);
             return;
           }
         } else {
@@ -147,6 +161,7 @@ export default function ThemePage() {
       
       setTracks(fallbackTracks);
       setCurrentTrack(fallbackTracks[0] || null);
+      setIsPlaying(true);
       setError("AI classification unavailable, showing search results");
     } catch (error) {
       console.error("Error:", error);

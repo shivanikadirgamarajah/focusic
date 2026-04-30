@@ -13,9 +13,9 @@ const arrowTransition = (delay = 0) => ({
 const AnimatedName: React.FC = () => (
   <div className="w-full flex flex-col items-center justify-center mt-25 mb-48">
     <div className="flex flex-col items-center gap-15">
-      {[0].map((delay, i) => (
+      {[0].map((delay) => (
         <motion.div
-          key={i}
+          key="animated-arrow"
           animate={{ y: [0, 20], opacity: [0.7, 1] }}
           transition={arrowTransition(delay)}
           className="text-6xl font-bold leading-none will-change-transform"

@@ -130,77 +130,44 @@ export default function PersistentMusicBar() {
   useEffect(() => {
     if (!currentTrack || !window.YT || !window.YT.Player) return;
 
-    let retryCount = 0;
-    const maxRetries = 25;
-    let timeoutId: NodeJS.Timeout;
     let isMounted = true;
+    let timeoutId: NodeJS.Timeout;
 
-    const tryCreatePlayer = () => {
-      if (!isMounted) return;
-
-      // Check if ref is available - if not, retry
-      if (!playerContainerRef.current) {
-        if (retryCount < maxRetries) {
-          retryCount++;
-          const delay = Math.min(100 * Math.pow(1.1, retryCount), 500);
-          timeoutId = setTimeout(tryCreatePlayer, delay);
-        }
-        return;
-      }
+    const createPlayer = () => {
+      if (!isMounted || !playerContainerRef.current) return;
 
       try {
-        // Verify container is in document and accessible
-        if (!document.body.contains(playerContainerRef.current)) {
-          throw new Error("Container not in document");
+        // If player exists, just load new video
+        if (playerRef.current?.loadVideoById) {
+          playerRef.current.loadVideoById(currentTrack.videoId);
+          return;
         }
 
-        // Create new player or load new video
-        if (!playerRef.current) {
-          // Use a try-catch specifically around the player constructor
-          try {
-            playerRef.current = new window.YT.Player(playerContainerRef.current, {
-              height: "0",
-              width: "0",
-              videoId: currentTrack.videoId,
-              events: {
-                onStateChange: (event: any) => {
-                  if (event.data === window.YT.PlayerState.ENDED) {
-                    playNextRef.current();
-                  }
-                },
-                onError: (event: any) => {
-                  console.error("YouTube player error:", event.data);
-                  // Reset player on error so it can be recreated
-                  playerRef.current = null;
-                },
-              },
-            });
-          } catch (constructorError) {
-            // If constructor fails, likely DOM issue - retry
-            if (retryCount < maxRetries) {
-              retryCount++;
-              const delay = Math.min(100 * Math.pow(1.1, retryCount), 500);
-              timeoutId = setTimeout(tryCreatePlayer, delay);
-              return;
-            }
-            throw constructorError;
-          }
-        } else if (playerRef.current?.loadVideoById) {
-          playerRef.current.loadVideoById(currentTrack.videoId);
-        }
+        // Create new player
+        playerRef.current = new window.YT.Player(playerContainerRef.current, {
+          height: "0",
+          width: "0",
+          videoId: currentTrack.videoId,
+          events: {
+            onStateChange: (event: any) => {
+              if (event.data === window.YT.PlayerState.ENDED) {
+                playNextRef.current();
+              }
+            },
+            onError: (event: any) => {
+              console.error("YouTube player error:", event.data);
+              playerRef.current = null;
+            },
+          },
+        });
       } catch (error) {
-        if (retryCount < maxRetries) {
-          retryCount++;
-          const delay = Math.min(100 * Math.pow(1.1, retryCount), 500);
-          timeoutId = setTimeout(tryCreatePlayer, delay);
-        } else {
-          console.error("Failed to create YouTube player after max retries:", error);
-        }
+        console.warn("Player creation error:", error);
+        // Don't retry - let it be
       }
     };
 
-    // Wait a bit longer to ensure everything is settled
-    timeoutId = setTimeout(tryCreatePlayer, 200);
+    // Wait for DOM to settle then create player
+    timeoutId = setTimeout(createPlayer, 100);
 
     return () => {
       isMounted = false;
@@ -245,13 +212,7 @@ export default function PersistentMusicBar() {
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      try {
-        if (playerRef.current && playerRef.current.destroy) {
-          playerRef.current.destroy();
-        }
-      } catch (error) {
-        console.error("Error destroying player:", error);
-      }
+      playerRef.current = null;
     };
   }, []);
 
@@ -314,8 +275,19 @@ export default function PersistentMusicBar() {
 
   return (
     <>
-      {/* YouTube Player Container - must exist in DOM */}
-      <div id="youtube-player-container" ref={playerContainerRef} style={{ display: "none" }} />
+      {/* YouTube Player Container - must exist in DOM and be accessible */}
+      <div 
+        id="youtube-player-container" 
+        ref={playerContainerRef} 
+        style={{ 
+          position: "absolute",
+          width: "1px",
+          height: "1px",
+          left: "-9999px",
+          visibility: "hidden",
+          pointerEvents: "none"
+        }} 
+      />
 
       <div className="fixed bottom-0 left-0 right-0 bg-gray-900 border-t border-gray-700 z-50">
         {/* Progress bar */}

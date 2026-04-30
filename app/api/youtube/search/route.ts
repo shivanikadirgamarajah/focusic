@@ -30,22 +30,26 @@ export async function GET(req: Request) {
       console.error("YouTube API error:", {
         status: response.status,
         statusText: response.statusText,
-        body: errorData.slice(0, 500),
+        body: errorData.slice(0, 1000),
       });
       
       let errorDetails = errorData;
       try {
         const parsed = JSON.parse(errorData);
-        errorDetails = parsed.error?.message || errorData;
+        errorDetails = parsed.error?.message || JSON.stringify(parsed);
       } catch (e) {
         // Keep errorData as-is if not JSON
       }
+      
+      // Log the full error for debugging
+      console.log("Full YouTube error response:", errorDetails);
       
       return NextResponse.json(
         { 
           error: "Failed to fetch YouTube videos", 
           details: errorDetails,
-          type: response.status === 403 ? "invalid_api_key" : response.status === 401 ? "auth_error" : "unknown"
+          status: response.status,
+          type: response.status === 403 ? "invalid_api_key" : response.status === 401 ? "auth_error" : response.status === 429 ? "quota_exceeded" : "unknown"
         },
         { status: 500 }
       );

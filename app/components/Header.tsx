@@ -1,8 +1,26 @@
+"use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState, useEffect } from "react";
 
 export default function Header() {
   const pathname = usePathname();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const getLinkClass = (href: string) => {
+    if (!mounted) {
+      return "font-semibold transition text-gray-300 hover:text-white";
+    }
+    return `font-semibold transition ${
+      pathname === href
+        ? "text-blue-400"
+        : "text-gray-300 hover:text-white"
+    }`;
+  };
 
   return (
     <header className="border-b border-gray-800 bg-gradient-to-r from-gray-950 to-black">
@@ -20,31 +38,19 @@ export default function Header() {
         <nav className="flex items-center gap-6">
           <Link
             href="/"
-            className={`font-semibold transition ${
-              pathname === "/"
-                ? "text-blue-400"
-                : "text-gray-300 hover:text-white"
-            }`}
+            className={getLinkClass("/")}
           >
             Home
           </Link>
           <Link
             href="/explore"
-            className={`font-semibold transition ${
-              pathname === "/explore"
-                ? "text-blue-400"
-                : "text-gray-300 hover:text-white"
-            }`}
+            className={getLinkClass("/explore")}
           >
             Explore
           </Link>
           <Link
             href="/timer"
-            className={`font-semibold transition ${
-              pathname === "/timer"
-                ? "text-blue-400"
-                : "text-gray-300 hover:text-white"
-            }`}
+            className={getLinkClass("/timer")}
           >
             Timer
           </Link>

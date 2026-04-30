@@ -12,20 +12,10 @@ export async function POST(req: Request) {
     if (!tracks || !Array.isArray(tracks) || tracks.length === 0) {
       console.error("Invalid tracks input:", tracks);
       return NextResponse.json(
-        { error: "Invalid tracks input", details: "No tracks provided" },
+        { error: "Invalid tracks input" },
         { status: 400 }
       );
     }
-
-    if (!process.env.GROQ_API_KEY) {
-      console.error("GROQ_API_KEY not configured");
-      return NextResponse.json(
-        { error: "API configuration error", details: "GROQ_API_KEY not set" },
-        { status: 500 }
-      );
-    }
-
-    console.log("Classifying tracks for mood:", mood, "Track count:", tracks.length);
 
     const prompt = `
 You are an AI music recommender for a focus timer app.
@@ -63,7 +53,15 @@ Format - include ALL original fields plus new ones:
       temperature: 0.3,
     });
 
-    const text = completion.choices[0]?.message?.content ?? "[]";
+    if (!completion.choices?.[0]?.message?.content) {
+      console.error("Groq API returned empty response:", completion);
+      return NextResponse.json(
+        { error: "AI returned empty response", details: "Groq API did not return any content" },
+        { status: 500 }
+      );
+    }
+
+    const text = completion.choices[0].message.content;
 
     // Strip markdown code blocks if present
     let cleanedText = text.trim();
@@ -93,22 +91,28 @@ Format - include ALL original fields plus new ones:
     });
   } catch (error) {
     console.error("Classify API error:", error);
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    const errorDetails = error instanceof Error ? error.stack : "";
     
-    // Log detailed error for debugging
-    console.error("Full error object:", {
+    let errorMessage = "Unknown error";
+    let errorDetails = "";
+    
+    if (error instanceof Error) {
+      errorMessage = error.message;
+      errorDetails = error.stack || "";
+    } else if (typeof error === "object" && error !== null) {
+      errorMessage = JSON.stringify(error);
+    }
+
+    console.error("Full error details:", {
       message: errorMessage,
-      stack: errorDetails,
-      type: error instanceof Error ? error.constructor.name : typeof error,
-      error: error,
+      details: errorDetails,
+      type: typeof error,
     });
 
     return NextResponse.json(
       { 
         error: "Failed to classify tracks", 
         details: errorMessage,
-        stack: process.env.NODE_ENV === "development" ? errorDetails : undefined
+        type: errorMessage.includes("401") ? "auth_error" : errorMessage.includes("429") ? "rate_limit" : "unknown",
       },
       { status: 500 }
     );

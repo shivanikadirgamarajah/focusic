@@ -86,19 +86,27 @@ export default function ThemePage() {
       
       if (!classifyRes.ok) {
         const contentType = classifyRes.headers.get("content-type");
-        let errorData = { error: "Unknown error" };
+        let errorData = { 
+          error: `HTTP ${classifyRes.status}`,
+          details: classifyRes.statusText 
+        };
         
         if (contentType && contentType.includes("application/json")) {
           try {
-            errorData = await classifyRes.json();
+            const parsed = await classifyRes.json();
+            errorData = { ...errorData, ...parsed };
           } catch (e) {
-            console.error("Failed to parse error as JSON:", e);
-            errorData = { error: `HTTP ${classifyRes.status}` };
+            console.error("Failed to parse error response as JSON:", e);
           }
-        } else {
-          const text = await classifyRes.text();
-          console.error("Non-JSON error response:", text);
-          errorData = { error: text || `HTTP ${classifyRes.status}` };
+        } else if (contentType && contentType.includes("text")) {
+          try {
+            const text = await classifyRes.text();
+            if (text) {
+              errorData.details = text;
+            }
+          } catch (e) {
+            console.error("Failed to read error response as text:", e);
+          }
         }
         
         console.error("Classify API error response:", {
@@ -108,7 +116,13 @@ export default function ThemePage() {
           errorData,
         });
         
-        throw new Error(`Classify API failed: ${classifyRes.status} - ${errorData?.details || errorData?.error || classifyRes.statusText}`);
+        const detailedError = errorData?.type === "auth_error" 
+          ? "Invalid or expired Groq API key"
+          : errorData?.type === "rate_limit"
+          ? "Rate limited by API. Please try again later"
+          : errorData?.details || classifyRes.statusText || "Unknown error";
+        
+        throw new Error(`Classify API failed (${classifyRes.status}): ${detailedError}`);
       }
 
       const classifyData = await classifyRes.json();

@@ -132,9 +132,17 @@ export default function ThemePage() {
             }));
             const sorted = withTimestamp.sort((a: Track, b: Track) => (b.focusScore || 0) - (a.focusScore || 0));
             
-            setTracks(sorted);
-            setCurrentTrack(sorted[0] || null);
-            setIsPlaying(true);
+            // Only update if tracks actually changed
+            const isSame = tracks.length === sorted.length && tracks.every((t, i) => t.videoId === sorted[i].videoId);
+            if (!isSame) {
+              setTracks(sorted);
+            }
+            // Only set currentTrack if not already set to first result
+            if (!currentTrack || currentTrack.videoId !== sorted[0]?.videoId) {
+              setCurrentTrack(sorted[0] || null);
+              setIsPlaying(true);
+            }
+            setIsLoading(false);
             return;
           }
         } else {
@@ -159,9 +167,14 @@ export default function ThemePage() {
         timestamp,
       }));
       
-      setTracks(fallbackTracks);
-      setCurrentTrack(fallbackTracks[0] || null);
-      setIsPlaying(true);
+      const isSameFallback = tracks.length === fallbackTracks.length && tracks.every((t, i) => t.videoId === fallbackTracks[i].videoId);
+      if (!isSameFallback) {
+        setTracks(fallbackTracks);
+      }
+      if (!currentTrack || currentTrack.videoId !== fallbackTracks[0]?.videoId) {
+        setCurrentTrack(fallbackTracks[0] || null);
+        setIsPlaying(true);
+      }
       setError("AI classification unavailable, showing search results");
     } catch (error) {
       console.error("Error:", error);

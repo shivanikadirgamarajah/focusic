@@ -84,16 +84,13 @@ export default function TrackList({
         {tracks.map((track) => (
           <div
             key={track.videoId}
-            className={`rounded-lg overflow-hidden border-2 transition transform hover:scale-105 flex flex-col h-full relative group ${
+            className={`rounded-lg overflow-hidden border-2 transition transform hover:scale-105 flex flex-col h-full relative group cursor-pointer ${
               currentTrack?.videoId === track.videoId
                 ? "border-blue-500 shadow-lg shadow-blue-500"
                 : "border-gray-700 hover:border-gray-500"
             }`}
+            onClick={() => onSelectTrack(track)}
           >
-            <button
-              onClick={() => onSelectTrack(track)}
-              className="absolute inset-0 z-10"
-            />
             <div className="relative bg-gray-800 w-full aspect-video">
               {track.thumbnail ? (
                 <img

@@ -35,7 +35,7 @@ export default function Header() {
           </div>
         </Link>
 
-        <nav className="flex items-center gap-6">
+        <nav className="flex items-center gap-15">
           <Link
             href="/"
             className={getLinkClass("/")}

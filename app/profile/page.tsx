@@ -88,30 +88,7 @@ export default function ProfilePage() {
             </div>
 
             {/* Focus Length */}
-            <div>
-              <label className="block text-white font-semibold mb-2">Focus Duration: {focusLength} min</label>
-              <input
-                type="range"
-                min="10"
-                max="60"
-                value={focusLength}
-                onChange={(e) => setFocusLength(parseInt(e.target.value))}
-                className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
-              />
-            </div>
-
-            {/* Break Length */}
-            <div>
-              <label className="block text-white font-semibold mb-2">Break Duration: {breakLength} min</label>
-              <input
-                type="range"
-                min="1"
-                max="15"
-                value={breakLength}
-                onChange={(e) => setBreakLength(parseInt(e.target.value))}
-                className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-purple-500"
-              />
-            </div>
+            
 
             {/* Create Button */}
             <button
@@ -143,16 +120,7 @@ export default function ProfilePage() {
             <p className="text-2xl font-bold">{preferences.workType}</p>
           </div>
 
-          <div className="grid grid-cols-2 gap-6">
-            <div>
-              <p className="text-gray-400 text-sm mb-1">Focus Duration</p>
-              <p className="text-2xl font-bold">{preferences.focusLength} min</p>
-            </div>
-            <div>
-              <p className="text-gray-400 text-sm mb-1">Break Duration</p>
-              <p className="text-2xl font-bold">{preferences.breakLength} min</p>
-            </div>
-          </div>
+         
 
           <div className="rounded-lg bg-blue-950 border border-blue-700 p-4">
             <p className="text-gray-400 text-sm mb-1">Total Focus Time</p>

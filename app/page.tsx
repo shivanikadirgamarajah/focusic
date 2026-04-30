@@ -18,9 +18,12 @@ export default function Home() {
   };
 
   useEffect(() => {
-    // Load personalized recommendations on mount based on history
-    loadRecommendations();
-  }, []);
+    // Only load recommendations if we haven't performed a search yet AND there are no tracks loaded
+    // This prevents overriding the current track when navigating back to home
+    if (!hasPerformedSearch && tracks.length === 0) {
+      loadRecommendations();
+    }
+  }, [hasPerformedSearch, tracks.length]);
 
   async function loadRecommendations() {
     try {
@@ -91,8 +94,13 @@ export default function Home() {
           duration: durationMap[track.videoId] || track.duration,
         }));
         const sorted = withTimestamp.sort((a: Track, b: Track) => (b.focusScore || 0) - (a.focusScore || 0));
-        setTracks(sorted);
-        if (sorted.length > 0) {
+        // Only update if tracks actually changed
+        const isSame = tracks.length === sorted.length && tracks.every((t, i) => t.videoId === sorted[i].videoId);
+        if (!isSame) {
+          setTracks(sorted);
+        }
+        // Only set currentTrack if not already set to first result
+        if (!currentTrack || currentTrack.videoId !== sorted[0]?.videoId) {
           setCurrentTrack(sorted[0]);
         }
       }
@@ -145,9 +153,12 @@ export default function Home() {
             const sorted = withTimestamp.sort((a: Track, b: Track) => (b.focusScore || 0) - (a.focusScore || 0));
             setTracks(sorted);
             if (sorted.length > 0) {
-              setCurrentTrack(sorted[0]);
-              if (autoPlay) {
-                setIsPlaying(true);
+              // Only set currentTrack if not already set to first result
+              if (!currentTrack || currentTrack.videoId !== sorted[0]?.videoId) {
+                setCurrentTrack(sorted[0]);
+                if (autoPlay) {
+                  setIsPlaying(true);
+                }
               }
             }
             return;
@@ -173,9 +184,12 @@ export default function Home() {
       
       setTracks(fallbackTracks);
       if (fallbackTracks.length > 0) {
-        setCurrentTrack(fallbackTracks[0]);
-        if (autoPlay) {
-          setIsPlaying(true);
+        // Only set currentTrack if not already set to first result
+        if (!currentTrack || currentTrack.videoId !== fallbackTracks[0]?.videoId) {
+          setCurrentTrack(fallbackTracks[0]);
+          if (autoPlay) {
+            setIsPlaying(true);
+          }
         }
       }
     } catch (error) {
@@ -188,7 +202,10 @@ export default function Home() {
     setHasPerformedSearch(true);
     setTracks(classifiedTracks);
     if (classifiedTracks.length > 0) {
-      setCurrentTrack(classifiedTracks[0]);
+      // Only set currentTrack if not already set to first result
+      if (!currentTrack || currentTrack.videoId !== classifiedTracks[0]?.videoId) {
+        setCurrentTrack(classifiedTracks[0]);
+      }
     }
   }
 

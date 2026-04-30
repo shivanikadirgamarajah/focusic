@@ -13,6 +13,10 @@ export default function Home() {
   const [isLoadingRecommendations, setIsLoadingRecommendations] = useState(false);
   const [hasPerformedSearch, setHasPerformedSearch] = useState(false);
 
+  const getTimestamp = () => {
+    return Date.now();
+  };
+
   useEffect(() => {
     // Load personalized recommendations on mount based on history
     loadRecommendations();
@@ -71,7 +75,22 @@ export default function Home() {
       const classifyData = await classifyRes.json();
       if (classifyData.result) {
         const classified = JSON.parse(classifyData.result);
-        const sorted = classified.sort((a: Track, b: Track) => (b.focusScore || 0) - (a.focusScore || 0));
+        const timestamp = getTimestamp();
+        
+        // Create a map of video IDs to durations from original videos
+        const durationMap: Record<string, string> = {};
+        videos.forEach((video: any) => {
+          if (video.duration) {
+            durationMap[video.videoId] = video.duration;
+          }
+        });
+        
+        const withTimestamp = classified.map((track: Track) => ({
+          ...track,
+          timestamp,
+          duration: durationMap[track.videoId] || track.duration,
+        }));
+        const sorted = withTimestamp.sort((a: Track, b: Track) => (b.focusScore || 0) - (a.focusScore || 0));
         setTracks(sorted);
         if (sorted.length > 0) {
           setCurrentTrack(sorted[0]);
@@ -92,30 +111,76 @@ export default function Home() {
       const { videos } = await ytRes.json();
 
       if (!Array.isArray(videos) || videos.length === 0) {
-        loadDefaultRecommendations();
+        await loadDefaultRecommendations();
         return;
       }
 
-      const aiRes = await fetch("/api/ai/classify", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mood: query, tracks: videos }),
-      });
+      // Try to classify with AI
+      try {
+        const aiRes = await fetch("/api/ai/classify", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ mood: query, tracks: videos }),
+        });
 
-      const aiData = await aiRes.json();
-      if (aiData.result) {
-        const classifiedTracks = JSON.parse(aiData.result);
-        const sorted = classifiedTracks.sort((a: Track, b: Track) => (b.focusScore || 0) - (a.focusScore || 0));
-        setTracks(sorted);
-        if (sorted.length > 0) {
-          setCurrentTrack(sorted[0]);
-          if (autoPlay) {
-            setIsPlaying(true);
+        if (aiRes.ok) {
+          const aiData = await aiRes.json();
+          if (aiData.result) {
+            const classifiedTracks = JSON.parse(aiData.result);
+            const timestamp = getTimestamp();
+            
+            // Create a map of video IDs to durations from original videos
+            const durationMap: Record<string, string> = {};
+            videos.forEach((video: any) => {
+              if (video.duration) {
+                durationMap[video.videoId] = video.duration;
+              }
+            });
+            
+            const withTimestamp = classifiedTracks.map((track: Track) => ({
+              ...track,
+              timestamp,
+              duration: durationMap[track.videoId] || track.duration,
+            }));
+            const sorted = withTimestamp.sort((a: Track, b: Track) => (b.focusScore || 0) - (a.focusScore || 0));
+            setTracks(sorted);
+            if (sorted.length > 0) {
+              setCurrentTrack(sorted[0]);
+              if (autoPlay) {
+                setIsPlaying(true);
+              }
+            }
+            return;
           }
+        } else {
+          console.warn(`Classify API returned ${aiRes.status}`);
+        }
+      } catch (classifyError) {
+        console.warn("Classify API error, using fallback:", classifyError);
+      }
+
+      // Fallback: Use raw videos with default focus scores
+      const timestamp = getTimestamp();
+      const fallbackTracks = videos.map((video: any, index: number) => ({
+        ...video,
+        focusScore: 7 - (index * 0.5),
+        genre: "ambient",
+        reason: "From search results",
+        bestFor: "focus",
+        duration: video.duration || "0:00",
+        timestamp,
+      }));
+      
+      setTracks(fallbackTracks);
+      if (fallbackTracks.length > 0) {
+        setCurrentTrack(fallbackTracks[0]);
+        if (autoPlay) {
+          setIsPlaying(true);
         }
       }
     } catch (error) {
       console.error("Error performing search:", error);
+      await loadDefaultRecommendations();
     }
   }
 
@@ -124,7 +189,6 @@ export default function Home() {
     setTracks(classifiedTracks);
     if (classifiedTracks.length > 0) {
       setCurrentTrack(classifiedTracks[0]);
-      setIsPlaying(true);
     }
   }
 

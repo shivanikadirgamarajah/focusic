@@ -7,4 +7,6 @@ export type Track = {
   reason?: string;
   bestFor: string;
   thumbnail?: string;
+  duration?: string;
+  timestamp?: number;
 };

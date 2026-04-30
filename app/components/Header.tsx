@@ -7,7 +7,7 @@ export default function Header() {
   return (
     <header className="border-b border-gray-800 bg-gradient-to-r from-gray-950 to-black">
       <div className="mx-auto max-w-6xl pl-0 pr-0 py-4 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-2 group">
+        <Link href="/" className="flex items-center gap-2 group -ml-9">
           
           <div>
             <h1 className="text-4xl font-bold text-white group-hover:text-blue-400 transition">
@@ -47,6 +47,16 @@ export default function Header() {
             }`}
           >
             Timer
+          </Link>
+          <Link
+            href="/liked-songs"
+            className={`font-semibold transition ${
+              pathname === "/liked-songs"
+                ? "text-blue-400"
+                : "text-gray-300 hover:text-white"
+            }`}
+          >
+            Liked Songs
           </Link>
           <Link
             href="/profile"

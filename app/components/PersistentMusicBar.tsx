@@ -1,45 +1,259 @@
 "use client";
 
 import { useMusic } from "@/app/context/MusicContext";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
+
+declare global {
+  interface Window {
+    YT: any;
+    onYouTubeIframeAPIReady: () => void;
+  }
+}
 
 export default function PersistentMusicBar() {
   const { currentTrack, tracks, isPlaying, setIsPlaying, playNext } = useMusic();
   const [progress, setProgress] = useState(0);
   const [elapsedTime, setElapsedTime] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const [duration, setDuration] = useState(0);
+  const [isLiked, setIsLiked] = useState(false);
+  const progressBarRef = useRef<HTMLDivElement>(null);
+  const playerRef = useRef<any>(null);
+  const playerContainerRef = useRef<HTMLDivElement>(null);
+  const apiLoadedRef = useRef(false);
+  const playNextRef = useRef(playNext);
 
-  // Simulate progress while playing
+  // Keep ref in sync with playNext
   useEffect(() => {
-    if (!isPlaying) {
-      return;
+    playNextRef.current = playNext;
+  }, [playNext]);
+
+  // Check if current track is liked
+  useEffect(() => {
+    if (!currentTrack) return;
+    
+    try {
+      const saved = localStorage.getItem("likedSongs");
+      if (saved) {
+        const songs = JSON.parse(saved);
+        setIsLiked(songs.some((s: any) => s.videoId === currentTrack.videoId));
+      }
+    } catch (error) {
+      console.error("Error checking liked status:", error);
     }
+  }, [currentTrack?.videoId]);
+
+  const toggleLike = () => {
+    if (!currentTrack) return;
+
+    try {
+      let saved = localStorage.getItem("likedSongs");
+      let likedTracks = saved ? JSON.parse(saved) : [];
+
+      const index = likedTracks.findIndex((t: any) => t.videoId === currentTrack.videoId);
+
+      if (index > -1) {
+        likedTracks.splice(index, 1);
+        setIsLiked(false);
+      } else {
+        likedTracks.push(currentTrack);
+        setIsLiked(true);
+      }
+
+      localStorage.setItem("likedSongs", JSON.stringify(likedTracks));
+    } catch (error) {
+      console.error("Error toggling like:", error);
+    }
+  };
+
+  // Load YouTube IFrame API - only on first call
+  const loadYouTubeAPI = useCallback(() => {
+    if (apiLoadedRef.current) return;
+
+    try {
+      // Check if already loaded
+      if (window.YT && window.YT.Player) {
+        apiLoadedRef.current = true;
+        return;
+      }
+
+      // Only load if not already in DOM
+      const existingScript = document.querySelector('script[src*="youtube.com/iframe_api"]');
+      if (existingScript) {
+        apiLoadedRef.current = true;
+        return;
+      }
+
+      // Set up callback BEFORE loading script - this is critical
+      let apiReadyTimeout: NodeJS.Timeout;
+      window.onYouTubeIframeAPIReady = () => {
+        apiLoadedRef.current = true;
+        clearTimeout(apiReadyTimeout);
+      };
+
+      // Fallback: if API doesn't call ready in reasonable time, mark as attempted
+      apiReadyTimeout = setTimeout(() => {
+        if (window.YT && window.YT.Player) {
+          apiLoadedRef.current = true;
+        }
+      }, 5000);
+
+      const script = document.createElement("script");
+      script.src = "https://www.youtube.com/iframe_api";
+      script.async = true;
+      
+      script.onerror = () => {
+        console.warn("Failed to load YouTube API script");
+        clearTimeout(apiReadyTimeout);
+      };
+
+      // Append to head for better script loading order
+      if (document.head) {
+        document.head.appendChild(script);
+      } else {
+        document.body.appendChild(script);
+      }
+    } catch (error) {
+      console.warn("Error loading YouTube IFrame API:", error);
+      apiLoadedRef.current = false;
+    }
+  }, []);
+
+  // Load YouTube API only when we have a track
+  useEffect(() => {
+    if (currentTrack && !apiLoadedRef.current && typeof window !== "undefined") {
+      loadYouTubeAPI();
+    }
+  }, [currentTrack, loadYouTubeAPI]);
+
+  // Initialize or update player when track changes
+  useEffect(() => {
+    if (!currentTrack || !window.YT || !window.YT.Player) return;
+
+    let retryCount = 0;
+    const maxRetries = 25;
+    let timeoutId: NodeJS.Timeout;
+    let isMounted = true;
+
+    const tryCreatePlayer = () => {
+      if (!isMounted) return;
+
+      // Check if ref is available - if not, retry
+      if (!playerContainerRef.current) {
+        if (retryCount < maxRetries) {
+          retryCount++;
+          const delay = Math.min(100 * Math.pow(1.1, retryCount), 500);
+          timeoutId = setTimeout(tryCreatePlayer, delay);
+        }
+        return;
+      }
+
+      try {
+        // Verify container is in document and accessible
+        if (!document.body.contains(playerContainerRef.current)) {
+          throw new Error("Container not in document");
+        }
+
+        // Create new player or load new video
+        if (!playerRef.current) {
+          // Use a try-catch specifically around the player constructor
+          try {
+            playerRef.current = new window.YT.Player(playerContainerRef.current, {
+              height: "0",
+              width: "0",
+              videoId: currentTrack.videoId,
+              events: {
+                onStateChange: (event: any) => {
+                  if (event.data === window.YT.PlayerState.ENDED) {
+                    playNextRef.current();
+                  }
+                },
+                onError: (event: any) => {
+                  console.error("YouTube player error:", event.data);
+                  // Reset player on error so it can be recreated
+                  playerRef.current = null;
+                },
+              },
+            });
+          } catch (constructorError) {
+            // If constructor fails, likely DOM issue - retry
+            if (retryCount < maxRetries) {
+              retryCount++;
+              const delay = Math.min(100 * Math.pow(1.1, retryCount), 500);
+              timeoutId = setTimeout(tryCreatePlayer, delay);
+              return;
+            }
+            throw constructorError;
+          }
+        } else if (playerRef.current?.loadVideoById) {
+          playerRef.current.loadVideoById(currentTrack.videoId);
+        }
+      } catch (error) {
+        if (retryCount < maxRetries) {
+          retryCount++;
+          const delay = Math.min(100 * Math.pow(1.1, retryCount), 500);
+          timeoutId = setTimeout(tryCreatePlayer, delay);
+        } else {
+          console.error("Failed to create YouTube player after max retries:", error);
+        }
+      }
+    };
+
+    // Wait a bit longer to ensure everything is settled
+    timeoutId = setTimeout(tryCreatePlayer, 200);
+
+    return () => {
+      isMounted = false;
+      clearTimeout(timeoutId);
+    };
+  }, [currentTrack?.videoId]);
+
+  // Handle play/pause
+  useEffect(() => {
+    if (!playerRef.current || !playerRef.current.playVideo) return;
+
+    if (isPlaying) {
+      playerRef.current.playVideo();
+    } else {
+      playerRef.current.pauseVideo();
+    }
+  }, [isPlaying]);
+
+  // Update progress and duration
+  useEffect(() => {
+    if (!isPlaying || isDragging || !playerRef.current || !playerRef.current.getCurrentTime) return;
 
     const interval = setInterval(() => {
-      setElapsedTime((prev) => {
-        const newTime = prev + 1;
-        // Estimate duration as ~10 minutes (600 seconds) to allow longer videos
-        const estimatedDuration = 600;
-        const newProgress = Math.min((newTime / estimatedDuration) * 100, 100);
-        setProgress(newProgress);
+      try {
+        const currentTime = playerRef.current?.getCurrentTime?.() || 0;
+        const videoDuration = playerRef.current?.getDuration?.() || 0;
 
-        // Reset when track completes (only after substantial playback to avoid cutting off songs)
-        if (newProgress >= 99) {
-          playNext();
-          setProgress(0);
-          setElapsedTime(0);
+        if (videoDuration > 0) {
+          setElapsedTime(Math.floor(currentTime));
+          setProgress((currentTime / videoDuration) * 100);
+          setDuration(Math.floor(videoDuration));
         }
-        return newTime;
-      });
-    }, 1000);
+      } catch (error) {
+        // Player methods may not be ready yet
+        console.warn("Player methods not ready:", error);
+      }
+    }, 100);
 
     return () => clearInterval(interval);
-  }, [isPlaying, playNext]);
+  }, [isPlaying, isDragging]);
 
-  // Reset progress when track changes
+  // Cleanup on unmount
   useEffect(() => {
-    setProgress(0);
-    setElapsedTime(0);
-  }, [currentTrack?.videoId]);
+    return () => {
+      try {
+        if (playerRef.current && playerRef.current.destroy) {
+          playerRef.current.destroy();
+        }
+      } catch (error) {
+        console.error("Error destroying player:", error);
+      }
+    };
+  }, []);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -47,31 +261,77 @@ export default function PersistentMusicBar() {
     return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
+  const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!playerRef.current || !duration) return;
+
+    const progressBar = e.currentTarget;
+    const rect = progressBar.getBoundingClientRect();
+    const clickX = e.clientX - rect.left;
+    const percentage = (clickX / rect.width) * 100;
+    
+    const seekTime = (percentage / 100) * duration;
+    playerRef.current.seekTo(seekTime);
+    
+    setElapsedTime(Math.floor(seekTime));
+    setProgress(percentage);
+  };
+
+  const handleBubbleMouseDown = () => {
+    setIsDragging(true);
+  };
+
+  useEffect(() => {
+    if (!isDragging || !playerRef.current || !duration) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!progressBarRef.current) return;
+
+      const rect = progressBarRef.current.getBoundingClientRect();
+      const moveX = e.clientX - rect.left;
+      const percentage = Math.max(0, Math.min(100, (moveX / rect.width) * 100));
+
+      const seekTime = (percentage / 100) * duration;
+      playerRef.current.seekTo(seekTime);
+
+      setElapsedTime(Math.floor(seekTime));
+      setProgress(percentage);
+    };
+
+    const handleMouseUp = () => {
+      setIsDragging(false);
+    };
+
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [isDragging, duration]);
+
   if (!currentTrack) return null;
 
   return (
     <>
-      {/* Hidden iframe for audio playback */}
-      {isPlaying && (
-        <iframe
-          key={currentTrack.videoId}
-          width="0"
-          height="0"
-          src={`https://www.youtube.com/embed/${currentTrack.videoId}?autoplay=1&mute=0&loop=0&controls=0&modestbranding=1`}
-          title={currentTrack.title}
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          className="hidden"
-        />
-      )}
+      {/* YouTube Player Container - must exist in DOM */}
+      <div id="youtube-player-container" ref={playerContainerRef} style={{ display: "none" }} />
 
       <div className="fixed bottom-0 left-0 right-0 bg-gray-900 border-t border-gray-700 z-50">
         {/* Progress bar */}
-        <div className="w-full h-1 bg-gray-800 relative z-50">
+        <div 
+          ref={progressBarRef}
+          onClick={handleProgressClick}
+          className="w-full h-1 bg-gray-800 relative z-50 cursor-pointer group"
+        >
           <div
-            className="h-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-300 relative"
+            className={`h-full bg-gradient-to-r from-blue-500 to-purple-500 relative ${!isDragging ? 'transition-all duration-300' : ''}`}
             style={{ width: `${progress}%` }}
           >
-            <div className="absolute top-1/2 right-0 transform translate-x-1/2 -translate-y-1/2 w-3 h-3 bg-gradient-to-r from-blue-400 to-purple-400 rounded-full shadow-lg shadow-purple-500/50" />
+            <div 
+              onMouseDown={handleBubbleMouseDown}
+              className="absolute top-1/2 right-0 transform translate-x-1/2 -translate-y-1/2 w-3 h-3 bg-gradient-to-r from-blue-400 to-purple-400 rounded-full shadow-lg shadow-purple-500/50 cursor-grab active:cursor-grabbing hover:scale-125 transition-transform"
+            />
           </div>
         </div>
 
@@ -102,7 +362,26 @@ export default function PersistentMusicBar() {
             {/* Controls */}
             <div className="flex gap-2 flex-shrink-0">
               <button
-                onClick={() => setIsPlaying(!isPlaying)}
+                onClick={toggleLike}
+                className={`px-4 py-2 rounded-lg font-semibold transition ${
+                  isLiked
+                    ? "bg-red-600 hover:bg-red-700"
+                    : "bg-gray-700 hover:bg-gray-600"
+                }`}
+                title={isLiked ? "Unlike" : "Like"}
+              >
+                {isLiked ? "❤️ Liked" : "🤍 Like"}
+              </button>
+              <button
+                onClick={() => {
+                  if (!playerRef.current) return;
+                  if (isPlaying) {
+                    playerRef.current.pauseVideo();
+                  } else {
+                    playerRef.current.playVideo();
+                  }
+                  setIsPlaying(!isPlaying);
+                }}
                 className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg font-semibold transition"
               >
                 {isPlaying ? "⏸ Pause" : "▶ Play"}

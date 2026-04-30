@@ -61,11 +61,48 @@ export async function GET(req: Request) {
       });
     }
 
+    // Extract video IDs for the second API call to get durations
+    const videoIds = data.items.map((item: any) => item.id.videoId).join(",");
+
+    // Fetch video durations
+    const videosUrl = new URL("https://www.googleapis.com/youtube/v3/videos");
+    videosUrl.searchParams.set("part", "contentDetails");
+    videosUrl.searchParams.set("id", videoIds);
+    videosUrl.searchParams.set("key", process.env.YOUTUBE_API_KEY);
+
+    const videosResponse = await fetch(videosUrl);
+    const videosData = videosResponse.ok ? await videosResponse.json() : { items: [] };
+
+    // Map duration data by videoId for quick lookup
+    const durationMap: Record<string, string> = {};
+    if (videosData.items) {
+      videosData.items.forEach((item: any) => {
+        if (item.contentDetails?.duration) {
+          // Convert ISO 8601 duration to MM:SS or H:MM:SS
+          const match = item.contentDetails.duration.match(/PT(\d+H)?(\d+M)?(\d+S)?/);
+          const hours = parseInt(match?.[1] || 0);
+          const minutes = parseInt(match?.[2] || 0);
+          const seconds = parseInt(match?.[3] || 0);
+          const totalSeconds = hours * 3600 + minutes * 60 + seconds;
+          const displayHours = Math.floor(totalSeconds / 3600);
+          const displayMinutes = Math.floor((totalSeconds % 3600) / 60);
+          const displaySeconds = totalSeconds % 60;
+          
+          if (displayHours > 0) {
+            durationMap[item.id] = `${displayHours}:${displayMinutes.toString().padStart(2, "0")}:${displaySeconds.toString().padStart(2, "0")}`;
+          } else {
+            durationMap[item.id] = `${displayMinutes}:${displaySeconds.toString().padStart(2, "0")}`;
+          }
+        }
+      });
+    }
+
     const videos = data.items.map((item: any) => ({
       videoId: item.id.videoId,
       title: item.snippet.title,
       channel: item.snippet.channelTitle,
       thumbnail: item.snippet.thumbnails.medium?.url,
+      duration: durationMap[item.id.videoId] || "0:00",
     }));
 
     return NextResponse.json({

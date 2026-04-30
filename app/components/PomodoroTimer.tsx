@@ -71,22 +71,23 @@ export default function PomodoroTimer({ preferences }: PomodoroTimerProps) {
 
     if (isRunning && timerSeconds > 0) {
       interval = setInterval(() => {
-        setTimerSeconds((prev) => {
-          if (prev <= 1) {
-            const newType = sessionType === "work" ? "break" : "work";
-            setSessionType(newType);
-            setIsRunning(false);
-            playBeep();
-            alert(`${sessionType} session complete! Time for a ${newType}!`);
-            return newType === "work" ? focusMinutes * 60 : breakMinutes * 60;
-          }
-          return prev - 1;
-        });
+        const newSeconds = timerSeconds - 1;
+        
+        if (newSeconds <= 0) {
+          const newType: "work" | "break" = sessionType === "work" ? "break" : "work";
+          setSessionType(newType);
+          setIsRunning(false);
+          playBeep();
+          alert(`${sessionType} session complete! Time for a ${newType}!`);
+          setTimerSeconds(newType === "work" ? focusMinutes * 60 : breakMinutes * 60);
+        } else {
+          setTimerSeconds(newSeconds);
+        }
       }, 1000);
     }
 
     return () => clearInterval(interval);
-  }, [isRunning, timerSeconds, sessionType, focusMinutes, breakMinutes]);
+  }, [isRunning, timerSeconds, sessionType, focusMinutes, breakMinutes, setTimerSeconds, setSessionType, setIsRunning]);
 
 
 

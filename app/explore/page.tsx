@@ -20,6 +20,14 @@ const categories = [
     color: "bg-emerald-700",
   },
   {
+    title: "Liminal",
+    color: "bg-gray-700",
+  },
+  {
+    title: "Lofi",
+    color: "bg-pink-700",
+  },
+  {
     title: "Fantasy",
     color: "bg-purple-700",
   },

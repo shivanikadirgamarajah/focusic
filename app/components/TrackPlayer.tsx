@@ -11,11 +11,15 @@ interface TrackPlayerProps {
 
 export default function TrackPlayer({ track, onNext }: TrackPlayerProps) {
   const [showInsights, setShowInsights] = useState(false);
-  const { setIsPlaying, setCurrentTrack } = useMusic();
+  const { setIsPlaying, setCurrentTrack, isPlaying, currentTrack } = useMusic();
 
-  function handlePlayerClick() {
-    setCurrentTrack(track);
-    setIsPlaying(true);
+  function handlePlayPause() {
+    if (currentTrack?.videoId === track.videoId) {
+      setIsPlaying(!isPlaying);
+    } else {
+      setCurrentTrack(track);
+      setIsPlaying(true);
+    }
   }
 
   return (
@@ -24,7 +28,7 @@ export default function TrackPlayer({ track, onNext }: TrackPlayerProps) {
 
       <div 
         className="relative aspect-video bg-black rounded-lg overflow-hidden cursor-pointer hover:ring-2 hover:ring-blue-500 transition"
-        onClick={handlePlayerClick}
+        onClick={handlePlayPause}
       >
         <iframe
           width="100%"
@@ -39,6 +43,12 @@ export default function TrackPlayer({ track, onNext }: TrackPlayerProps) {
       </div>
 
       <div className="flex gap-3">
+        <button
+          onClick={handlePlayPause}
+          className="rounded-lg bg-green-600 px-4 py-2 font-semibold text-white hover:bg-green-700 transition"
+        >
+          {currentTrack?.videoId === track.videoId && isPlaying ? "Pause" : "Play"}
+        </button>
         <button
           onClick={() => setShowInsights(!showInsights)}
           className="rounded-lg bg-purple-600 px-4 py-2 font-semibold text-white hover:bg-purple-700 transition"

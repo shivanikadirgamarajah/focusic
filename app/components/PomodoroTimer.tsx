@@ -10,20 +10,29 @@ interface PomodoroTimerProps {
 
 function playBeep() {
   const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-  const oscillator = audioContext.createOscillator();
-  const gainNode = audioContext.createGain();
+  const beepDuration = 0.2; // Duration of each beep
+  const beepInterval = 0.3; // Interval between beeps
+  const totalDuration = 3; // Total duration of beeping (3 seconds)
+  const numBeeps = Math.floor(totalDuration / beepInterval);
 
-  oscillator.connect(gainNode);
-  gainNode.connect(audioContext.destination);
+  for (let i = 0; i < numBeeps; i++) {
+    const startTime = audioContext.currentTime + (i * beepInterval);
+    
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
 
-  oscillator.frequency.value = 800;
-  oscillator.type = "sine";
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
 
-  gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-  gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+    oscillator.frequency.value = 800;
+    oscillator.type = "sine";
 
-  oscillator.start(audioContext.currentTime);
-  oscillator.stop(audioContext.currentTime + 0.5);
+    gainNode.gain.setValueAtTime(0.3, startTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + beepDuration);
+
+    oscillator.start(startTime);
+    oscillator.stop(startTime + beepDuration);
+  }
 }
 
 export default function PomodoroTimer({ preferences }: PomodoroTimerProps) {
@@ -46,6 +55,12 @@ export default function PomodoroTimer({ preferences }: PomodoroTimerProps) {
   const progress = ((totalSeconds - timerSeconds) / totalSeconds) * 100;
   const circumference = 2 * Math.PI * 90;
   const strokeDashoffset = circumference - (progress / 100) * circumference;
+
+  // Reset timer when focus/break lengths change
+  useEffect(() => {
+    setIsRunning(false);
+    setTimerSeconds(sessionType === "work" ? focusMinutes * 60 : breakMinutes * 60);
+  }, [focusMinutes, breakMinutes, setIsRunning, setTimerSeconds, sessionType]);
 
   // Track when work session completes
   useEffect(() => {

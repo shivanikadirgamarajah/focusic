@@ -12,10 +12,19 @@ export default function Home() {
   const { tracks, currentTrack, setTracks, setCurrentTrack, setIsPlaying, playNext } = useMusic();
   const [isLoadingRecommendations, setIsLoadingRecommendations] = useState(false);
   const [hasPerformedSearch, setHasPerformedSearch] = useState(false);
+  const [userPreferences, setUserPreferences] = useState<any>(null);
 
   const getTimestamp = () => {
     return Date.now();
   };
+
+  // Load user preferences on mount
+  useEffect(() => {
+    const saved = localStorage.getItem("userPreferences");
+    if (saved) {
+      setUserPreferences(JSON.parse(saved));
+    }
+  }, []);
 
   useEffect(() => {
     // Only load recommendations if we haven't performed a search yet AND there are no tracks loaded
@@ -30,18 +39,31 @@ export default function Home() {
       setIsLoadingRecommendations(true);
       const searchHistory = JSON.parse(localStorage.getItem("searchHistory") || "[]");
       const listenHistory = JSON.parse(localStorage.getItem("listenHistory") || "[]");
+      const userPreferences = JSON.parse(localStorage.getItem("userPreferences") || "{}");
+      const likedSongs = JSON.parse(localStorage.getItem("likedSongs") || "[]");
+      const focusActivity = JSON.parse(localStorage.getItem("focusActivity") || "{}");
 
-      if (searchHistory.length === 0 && listenHistory.length === 0) {
+      if (searchHistory.length === 0 && listenHistory.length === 0 && likedSongs.length === 0) {
         // No history, load default recommendations
         await loadDefaultRecommendations();
         return;
       }
 
-      // Get AI recommendations based on history
+      // Get AI recommendations based on comprehensive user data
       const res = await fetch("/api/ai/recommend", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ searchHistory, listenHistory }),
+        body: JSON.stringify({ 
+          searchHistory, 
+          listenHistory,
+          userPreferences: {
+            workType: userPreferences.workType,
+            focusLength: userPreferences.focusLength,
+            breakLength: userPreferences.breakLength,
+          },
+          likedSongsPreview: likedSongs.slice(0, 10).map((s: any) => s.title),
+          focusSessionCount: Object.keys(focusActivity).length,
+        }),
       });
 
       const { recommendations } = await res.json();
@@ -59,8 +81,22 @@ export default function Home() {
 
   async function loadDefaultRecommendations() {
     try {
+      const userPreferences = JSON.parse(localStorage.getItem("userPreferences") || "{}");
+      const workType = userPreferences.workType || "focus";
+      
+      // Create a more personalized search query based on work type
+      const searchQueries: Record<string, string> = {
+        "programming": "ambient coding music lofi beats focus",
+        "writing": "creative writing ambient music lo-fi",
+        "studying": "study focus music ambient beats",
+        "design": "creative focus music lo-fi beats",
+        "default": "ambient focus music lofi beats",
+      };
+      
+      const searchQuery = searchQueries[workType.toLowerCase()] || searchQueries["default"];
+      
       const res = await fetch(
-        `/api/youtube/search?q=${encodeURIComponent("ambient focus music lofi beats")}`
+        `/api/youtube/search?q=${encodeURIComponent(searchQuery)}`
       );
       const { videos } = await res.json();
 
@@ -71,7 +107,8 @@ export default function Home() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           tracks: videos,
-          mood: "ambient focus music",
+          mood: `${workType} focus music`,
+          workType,
         }),
       });
 
@@ -209,13 +246,20 @@ export default function Home() {
     }
   }
 
+  function handleSelectTrack(track: Track) {
+    setCurrentTrack(track);
+    setIsPlaying(true);
+  }
+
   return (
     <main className="min-h-screen bg-black text-white flex-1 flex flex-col">
       <div className="mx-auto max-w-3xl space-y-8 px-8 py-12 flex-1">
         <section>
-          <h2 className="text-3xl font-bold">Discover Focus Music Based on</h2>
+          <h2 className="text-3xl font-bold">
+            Discover Focus Music {userPreferences?.workType ? `for ${userPreferences.workType}` : "Based on Your Taste"}
+          </h2>
           <p className="mt-2 text-gray-400">
-            {isLoadingRecommendations && "Loading personalized recommendations..."}
+            {isLoadingRecommendations ? "Loading personalized recommendations..." : userPreferences?.workType ? `Curated music for productive ${userPreferences.workType.toLowerCase()}` : "Personalized to your listening history"}
           </p>
         </section>
 
@@ -229,7 +273,7 @@ export default function Home() {
       <TrackList
         tracks={tracks}
         currentTrack={currentTrack}
-        onSelectTrack={setCurrentTrack}
+        onSelectTrack={handleSelectTrack}
       />
     </main>
   );

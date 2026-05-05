@@ -193,6 +193,12 @@ export default function ThemePage() {
 
     const nextIndex = (currentIndex + 1) % tracks.length;
     setCurrentTrack(tracks[nextIndex]);
+    setIsPlaying(true);
+  }
+
+  function handleSelectTrack(track: Track) {
+    setCurrentTrack(track);
+    setIsPlaying(true);
   }
 
   return (
@@ -236,7 +242,7 @@ export default function ThemePage() {
             <TrackList
               tracks={tracks}
               currentTrack={currentTrack}
-              onSelectTrack={setCurrentTrack}
+              onSelectTrack={handleSelectTrack}
             />
           )}
         </>

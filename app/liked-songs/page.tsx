@@ -11,14 +11,27 @@ export default function LikedSongsPage() {
 
   // Load liked songs from localStorage
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem("likedSongs");
-      if (saved) {
-        setLikedSongs(JSON.parse(saved));
+    const loadLikedSongs = () => {
+      try {
+        const saved = localStorage.getItem("likedSongs");
+        if (saved) {
+          setLikedSongs(JSON.parse(saved));
+        }
+      } catch (error) {
+        console.error("Error loading liked songs:", error);
       }
-    } catch (error) {
-      console.error("Error loading liked songs:", error);
-    }
+    };
+
+    loadLikedSongs();
+
+    // Listen for storage changes (when unliking from TrackList)
+    window.addEventListener("storage", loadLikedSongs);
+    window.addEventListener("likedSongsChanged", loadLikedSongs);
+
+    return () => {
+      window.removeEventListener("storage", loadLikedSongs);
+      window.removeEventListener("likedSongsChanged", loadLikedSongs);
+    };
   }, []);
 
   const handleSelectTrack = (track: any) => {
@@ -34,9 +47,26 @@ export default function LikedSongsPage() {
       (track) => track.videoId === currentTrack.videoId
     );
 
+    // If current track was removed, clear it
+    if (currentIndex === -1) {
+      setCurrentTrack(null);
+      return;
+    }
+
     const nextIndex = (currentIndex + 1) % likedSongs.length;
     setCurrentTrack(likedSongs[nextIndex]);
+    setIsPlaying(true);
   };
+
+  // Clear current track if it's no longer in liked songs
+  useEffect(() => {
+    if (currentTrack && likedSongs.length > 0) {
+      const trackExists = likedSongs.some(t => t.videoId === currentTrack.videoId);
+      if (!trackExists) {
+        setCurrentTrack(null);
+      }
+    }
+  }, [likedSongs, currentTrack, setCurrentTrack]);
 
   return (
     <main className="min-h-screen bg-black text-white pb-32">

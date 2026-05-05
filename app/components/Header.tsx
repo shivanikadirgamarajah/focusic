@@ -75,7 +75,7 @@ export default function Header() {
             Profile
           </Link>
           <a
-            href="https://github.com"
+            href="https://github.com/shivanikadirgamarajah/focusic"
             target="_blank"
             rel="noopener noreferrer"
             className="text-gray-400 hover:text-white transition"

@@ -69,6 +69,9 @@ export default function TrackList({
       }
 
       localStorage.setItem("likedSongs", JSON.stringify(likedTracks));
+      
+      // Dispatch custom event so other components know likes changed
+      window.dispatchEvent(new CustomEvent("likedSongsChanged"));
     } catch (error) {
       console.error("Error toggling like:", error);
     }

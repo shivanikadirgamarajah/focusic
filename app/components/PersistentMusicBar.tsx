@@ -356,7 +356,8 @@ export default function PersistentMusicBar() {
               }`}
               title={isLiked ? "Unlike" : "Like"}
             >
-              {isLiked ? "❤️ Liked" : "🤍 Like"}
+              <span className="hidden sm:inline">{isLiked ? "❤️ Liked" : "🤍 Like"}</span>
+              <span className="sm:hidden">{isLiked ? "❤️" : "🤍"}</span>
             </button>
             <button
               onClick={() => {
@@ -369,14 +370,18 @@ export default function PersistentMusicBar() {
               }}
               className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg font-semibold transition"
             >
-              {isPlaying ? "⏸ Pause" : "▶ Play"}
+              
+              <span className="hidden sm:inline">{isPlaying ? "⏸ Pause" : "▶ Play"}</span>
+              <span className="sm:hidden">{isPlaying ? "⏸" : "▶"}</span>
             </button>
             {tracks.length > 1 && (
               <button
                 onClick={playNext}
                 className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg font-semibold transition"
               >
-                Skip →
+                
+                <span className="hidden sm:inline">Skip →</span>
+                <span className="sm:hidden">→</span>
               </button>
             )}
           </div>

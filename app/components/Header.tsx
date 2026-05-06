@@ -6,6 +6,7 @@ import { useState, useEffect } from "react";
 export default function Header() {
   const pathname = usePathname();
   const [mounted, setMounted] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -22,56 +23,38 @@ export default function Header() {
     }`;
   };
 
+  const handleLinkClick = () => {
+    setMobileMenuOpen(false);
+  };
+
   return (
     <header className="border-b border-gray-800 bg-gradient-to-r from-gray-950 to-black">
-      <div className="mx-auto max-w-6xl pl-0 pr-0 py-4 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-2 group -ml-9">
+      <div className="mx-auto max-w-6xl px-2 sm:px-4 md:px-6 py-3 sm:py-4 flex items-center justify-between">
+        <Link href="/" className="flex items-center gap-2 group" onClick={handleLinkClick}>
           
           <div>
-            <h1 className="text-4xl font-bold text-white group-hover:text-blue-400 transition">
+            <h1 className="text-2xl sm:text-4xl font-bold text-white group-hover:text-blue-400 transition">
               Focusic
             </h1>
-            <p className="text-7xs text-gray-400">Ambient music for focus</p>
+            <p className="hidden sm:block text-xs text-gray-400">Ambient music for focus</p>
           </div>
         </Link>
 
-        <nav className="flex items-center gap-15">
-          <Link
-            href="/"
-            className={getLinkClass("/")}
-          >
+        {/* Desktop Navigation */}
+        <nav className="hidden md:flex items-center gap-8 text-sm sm:text-base">
+          <Link href="/" className={getLinkClass("/")} >
             Home
           </Link>
-          <Link
-            href="/explore"
-            className={getLinkClass("/explore")}
-          >
+          <Link href="/explore" className={getLinkClass("/explore")} >
             Explore
           </Link>
-          <Link
-            href="/timer"
-            className={getLinkClass("/timer")}
-          >
+          <Link href="/timer" className={getLinkClass("/timer")} >
             Timer
           </Link>
-          <Link
-            href="/liked-songs"
-            className={`font-semibold transition ${
-              pathname === "/liked-songs"
-                ? "text-blue-400"
-                : "text-gray-300 hover:text-white"
-            }`}
-          >
+          <Link href="/liked-songs" className={getLinkClass("/liked-songs")} >
             Liked Songs
           </Link>
-          <Link
-            href="/profile"
-            className={`font-semibold transition ${
-              pathname === "/profile"
-                ? "text-blue-400"
-                : "text-gray-300 hover:text-white"
-            }`}
-          >
+          <Link href="/profile" className={getLinkClass("/profile")} >
             Profile
           </Link>
           <a
@@ -89,7 +72,78 @@ export default function Header() {
             </svg>
           </a>
         </nav>
+
+        {/* Mobile Menu Button */}
+        <button
+          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          className="md:hidden p-2 text-gray-400 hover:text-white transition"
+        >
+          <svg
+            className="w-6 h-6"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            {mobileMenuOpen ? (
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            ) : (
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            )}
+          </svg>
+        </button>
       </div>
+
+      {/* Mobile Navigation Menu */}
+      {mobileMenuOpen && (
+        <div className="md:hidden border-t border-gray-700 bg-gray-900">
+          <div className="px-2 py-3 space-y-1">
+            <Link
+              href="/"
+              className={`block px-3 py-2 rounded-lg text-sm font-semibold transition ${getLinkClass("/")}`}
+              onClick={handleLinkClick}
+            >
+              Home
+            </Link>
+            <Link
+              href="/explore"
+              className={`block px-3 py-2 rounded-lg text-sm font-semibold transition ${getLinkClass("/explore")}`}
+              onClick={handleLinkClick}
+            >
+              Explore
+            </Link>
+            <Link
+              href="/timer"
+              className={`block px-3 py-2 rounded-lg text-sm font-semibold transition ${getLinkClass("/timer")}`}
+              onClick={handleLinkClick}
+            >
+              Timer
+            </Link>
+            <Link
+              href="/liked-songs"
+              className={`block px-3 py-2 rounded-lg text-sm font-semibold transition ${getLinkClass("/liked-songs")}`}
+              onClick={handleLinkClick}
+            >
+              Liked Songs
+            </Link>
+            <Link
+              href="/profile"
+              className={`block px-3 py-2 rounded-lg text-sm font-semibold transition ${getLinkClass("/profile")}`}
+              onClick={handleLinkClick}
+            >
+              Profile
+            </Link>
+            <a
+              href="https://github.com/shivanikadirgamarajah/focusic"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block px-3 py-2 rounded-lg text-sm font-semibold text-gray-400 hover:text-white hover:bg-gray-800 transition"
+              onClick={handleLinkClick}
+            >
+              GitHub
+            </a>
+          </div>
+        </div>
+      )}
     </header>
   );
 }

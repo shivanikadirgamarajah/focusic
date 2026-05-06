@@ -71,7 +71,7 @@ export default function LikedSongsPage() {
   return (
     <main className="min-h-screen bg-black text-white pb-32">
       <div className="max-w-7xl mx-auto px-4 py-8">
-        <h1 className="text-5xl font-bold mb-2">Liked Songs</h1>
+        <h1 className="text-3xl font-bold mb-2">Liked Songs</h1>
         <p className="text-gray-400 mb-8">{likedSongs.length} songs</p>
 
         {likedSongs.length === 0 ? (

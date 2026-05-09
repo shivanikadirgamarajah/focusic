@@ -9,9 +9,12 @@ interface MusicSearchProps {
   loading?: boolean;
 }
 
+
 export default function MusicSearch({ onSearch, loading = false }: MusicSearchProps) {
   const [mood, setMood] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+
+
 
   async function handleSearch() {
     if (!mood) return;

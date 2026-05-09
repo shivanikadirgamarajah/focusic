@@ -1,7 +1,7 @@
 "use client";
 
-import { createContext, useContext, useState, ReactNode } from "react";
-import { Track } from "@/app/types";
+import { createContext, useContext, useRef, useState, ReactNode } from "react";
+import { filterVisibleFocusTracks, isVisibleFocusTrack, Track } from "@/app/types";
 
 interface MusicContextType {
   currentTrack: Track | null;
@@ -17,15 +17,36 @@ const MusicContext = createContext<MusicContextType | undefined>(undefined);
 
 export function MusicProvider({ children }: { children: ReactNode }) {
   const [currentTrack, setCurrentTrackState] = useState<Track | null>(null);
-  const [tracks, setTracks] = useState<Track[]>([]);
+  const [tracks, setTracksState] = useState<Track[]>([]);
   const [isPlaying, setIsPlaying] = useState(false);
+  const tracksRef = useRef<Track[]>([]);
+
+  function setTracks(nextTracks: Track[]) {
+    const visibleTracks = filterVisibleFocusTracks(nextTracks);
+    tracksRef.current = visibleTracks;
+    setTracksState(visibleTracks);
+    setCurrentTrackState((previousTrack) => {
+      if (!previousTrack) return previousTrack;
+      const currentTrackIsVisible = visibleTracks.some(
+        (track) => track.videoId === previousTrack.videoId
+      );
+      return currentTrackIsVisible ? previousTrack : visibleTracks[0] || null;
+    });
+  }
 
   function setCurrentTrack(track: Track | null) {
-    setCurrentTrackState(track);
+    if (!track) {
+      setCurrentTrackState(null);
+      return;
+    }
+
+    const visibleTrack = isVisibleFocusTrack(track) ? track : tracksRef.current[0] || null;
+
+    setCurrentTrackState(visibleTrack);
     // Track listen in history when a track is played
-    if (track) {
+    if (visibleTrack) {
       const listenHistory = JSON.parse(localStorage.getItem("listenHistory") || "[]");
-      listenHistory.push(track.title);
+      listenHistory.push(visibleTrack.title);
       localStorage.setItem("listenHistory", JSON.stringify(listenHistory.slice(-20))); // Keep last 20
     }
   }

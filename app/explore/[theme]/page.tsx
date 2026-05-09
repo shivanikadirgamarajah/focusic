@@ -3,12 +3,20 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import MusicSearch from "@/app/components/MusicSearch";
 import TrackPlayer from "@/app/components/TrackPlayer";
 import TrackList from "@/app/components/TrackList";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
 import { useMusic } from "@/app/context/MusicContext";
 import { Track } from "@/app/types";
+
+type YoutubeVideo = Pick<Track, "videoId" | "title" | "channel" | "thumbnail" | "duration">;
+
+type YoutubeSearchResponse = {
+  videos?: YoutubeVideo[];
+  nextPageToken?: string | null;
+  error?: string;
+  details?: string;
+};
 
 const themeDescriptions: Record<string, string> = {
   rain: "relaxing rain sounds and rainfall ambience",
@@ -59,42 +67,127 @@ export default function ThemePage() {
   const theme = decodeURIComponent(params.theme as string);
   const { tracks, currentTrack, setTracks, setCurrentTrack, setIsPlaying } = useMusic();
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [nextPageToken, setNextPageToken] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const getTimestamp = () => {
     return Date.now();
   };
 
-  useEffect(() => {
-    // Auto-search when the page loads
-    const description = themeDescriptions[theme] || theme;
-    handleSearch(description);
-  }, [theme]);
+  async function fetchThemeVideos(query: string, pageToken?: string | null) {
+    const params = new URLSearchParams({ q: query });
+    if (pageToken) {
+      params.set("pageToken", pageToken);
+    }
+
+    const searchRes = await fetch(`/api/youtube/search?${params.toString()}`);
+
+    if (!searchRes.ok) {
+      let errorDetails = "";
+      try {
+        const errorData = (await searchRes.json()) as YoutubeSearchResponse;
+        errorDetails = errorData.error || errorData.details || JSON.stringify(errorData);
+      } catch {
+        errorDetails = await searchRes.text();
+      }
+
+      console.error(`Search API error (${searchRes.status}):`, errorDetails);
+      throw new Error(`Search API failed: ${searchRes.status} - ${errorDetails || searchRes.statusText}`);
+    }
+
+    const data = (await searchRes.json()) as YoutubeSearchResponse;
+
+    return {
+      videos: Array.isArray(data.videos) ? data.videos : [],
+      nextPageToken: data.nextPageToken || null,
+    };
+  }
+
+  async function classifyOrFallback(
+    videos: YoutubeVideo[],
+    mood: string,
+    fallbackReason: string
+  ) {
+    try {
+      const classifyRes = await fetch("/api/ai/classify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tracks: videos, mood }),
+      });
+
+      if (!classifyRes.ok) {
+        const errorText = await classifyRes.text().catch(() => "");
+        console.warn(`Classify API returned ${classifyRes.status}: ${errorText}`);
+        throw new Error("Classify API unavailable");
+      }
+
+      const classifyData = await classifyRes.json();
+
+      if (!classifyData.result) {
+        throw new Error("No classification result");
+      }
+
+      const classified = JSON.parse(classifyData.result) as Track[];
+      const timestamp = getTimestamp();
+      const durationMap: Record<string, string> = {};
+      videos.forEach((video) => {
+        if (video.duration) {
+          durationMap[video.videoId] = video.duration;
+        }
+      });
+
+      const withTimestamp = classified.map((track) => ({
+        ...track,
+        timestamp,
+        duration: durationMap[track.videoId] || track.duration,
+      }));
+
+      return {
+        tracks: withTimestamp.sort((a, b) => (b.focusScore || 0) - (a.focusScore || 0)),
+        usedFallback: false,
+      };
+    } catch (classifyError) {
+      console.warn("Classify API error, using fallback:", classifyError);
+      const timestamp = getTimestamp();
+      const fallbackTracks = videos.map((video, index) => ({
+        ...video,
+        focusScore: 7 - (index * 0.5),
+        genre: "ambient",
+        reason: fallbackReason,
+        bestFor: "focus",
+        duration: video.duration || "0:00",
+        timestamp,
+      }));
+
+      return {
+        tracks: fallbackTracks,
+        usedFallback: true,
+      };
+    }
+  }
+
+  function mergeUniqueTracks(existingTracks: Track[], newTracks: Track[]) {
+    const seenVideoIds = new Set(existingTracks.map((track) => track.videoId));
+    const uniqueTracks = newTracks.filter((track) => {
+      if (seenVideoIds.has(track.videoId)) {
+        return false;
+      }
+
+      seenVideoIds.add(track.videoId);
+      return true;
+    });
+
+    return [...existingTracks, ...uniqueTracks];
+  }
 
   async function handleSearch(query: string) {
     setIsLoading(true);
     setError(null);
+    setNextPageToken(null);
     try {
-      // Search for music
-      const searchRes = await fetch(
-        `/api/youtube/search?q=${encodeURIComponent(query)}`
-      );
-      
-      if (!searchRes.ok) {
-        // Get detailed error info
-        let errorDetails = "";
-        try {
-          const errorData = await searchRes.json();
-          errorDetails = errorData.error || errorData.details || JSON.stringify(errorData);
-        } catch (e) {
-          errorDetails = await searchRes.text();
-        }
-        
-        console.error(`Search API error (${searchRes.status}):`, errorDetails);
-        throw new Error(`Search API failed: ${searchRes.status} - ${errorDetails || searchRes.statusText}`);
-      }
-      
-      const { videos } = await searchRes.json();
+      const { videos, nextPageToken: newNextPageToken } = await fetchThemeVideos(query);
+      setNextPageToken(newNextPageToken);
 
       if (!Array.isArray(videos) || videos.length === 0) {
         setError("No tracks found for this theme");
@@ -102,85 +195,77 @@ export default function ThemePage() {
         return;
       }
 
-      // Try to classify with AI
-      try {
-        const classifyRes = await fetch("/api/ai/classify", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ tracks: videos, mood: theme }),
-        });
-        
-        if (classifyRes.ok) {
-          const classifyData = await classifyRes.json();
-          
-          if (classifyData.result) {
-            const classified = JSON.parse(classifyData.result);
-            const timestamp = getTimestamp();
-            
-            // Create a map of video IDs to durations from original videos
-            const durationMap: Record<string, string> = {};
-            videos.forEach((video: any) => {
-              if (video.duration) {
-                durationMap[video.videoId] = video.duration;
-              }
-            });
-            
-            const withTimestamp = classified.map((track: Track) => ({
-              ...track,
-              timestamp,
-              duration: durationMap[track.videoId] || track.duration,
-            }));
-            const sorted = withTimestamp.sort((a: Track, b: Track) => (b.focusScore || 0) - (a.focusScore || 0));
-            
-            // Only update if tracks actually changed
-            const isSame = tracks.length === sorted.length && tracks.every((t, i) => t.videoId === sorted[i].videoId);
-            if (!isSame) {
-              setTracks(sorted);
-            }
-            // Only set currentTrack if not already set to first result
-            if (!currentTrack || currentTrack.videoId !== sorted[0]?.videoId) {
-              setCurrentTrack(sorted[0] || null);
-              setIsPlaying(true);
-            }
-            setIsLoading(false);
-            return;
-          }
-        } else {
-          // Log error details but don't throw - use fallback instead
-          const errorText = await classifyRes.text().catch(() => "");
-          console.warn(`Classify API returned ${classifyRes.status}: ${errorText}`);
-        }
-      } catch (classifyError) {
-        console.warn("Classify API error, using fallback:", classifyError);
-      }
+      const { tracks: themeTracks, usedFallback } = await classifyOrFallback(
+        videos,
+        theme,
+        "From theme search results"
+      );
 
-      // Fallback: Use raw videos with default focus scores
-      console.log("Using fallback: returning unclassified tracks");
-      const timestamp = getTimestamp();
-      const fallbackTracks = videos.map((video: any, index: number) => ({
-        ...video,
-        focusScore: 7 - (index * 0.5),
-        genre: "ambient",
-        reason: "From theme search results",
-        bestFor: "focus",
-        duration: video.duration || "0:00",
-        timestamp,
-      }));
-      
-      const isSameFallback = tracks.length === fallbackTracks.length && tracks.every((t, i) => t.videoId === fallbackTracks[i].videoId);
-      if (!isSameFallback) {
-        setTracks(fallbackTracks);
+      const isSame = tracks.length === themeTracks.length && tracks.every((t, i) => t.videoId === themeTracks[i].videoId);
+      if (!isSame) {
+        setTracks(themeTracks);
       }
-      if (!currentTrack || currentTrack.videoId !== fallbackTracks[0]?.videoId) {
-        setCurrentTrack(fallbackTracks[0] || null);
+      if (!currentTrack || currentTrack.videoId !== themeTracks[0]?.videoId) {
+        setCurrentTrack(themeTracks[0] || null);
         setIsPlaying(true);
       }
-      setError("AI classification unavailable, showing search results");
+      if (usedFallback) {
+        setError("AI classification unavailable, showing search results");
+      }
     } catch (error) {
       console.error("Error:", error);
       setError(error instanceof Error ? error.message : "Unknown error occurred");
     } finally {
       setIsLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    let cancelled = false;
+    const description = themeDescriptions[theme] || theme;
+    void Promise.resolve().then(() => {
+      if (!cancelled) {
+        void handleSearch(description);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [theme]);
+
+  async function handleLoadMore() {
+    if (!nextPageToken || isLoadingMore) return;
+
+    setIsLoadingMore(true);
+    setError(null);
+
+    try {
+      const description = themeDescriptions[theme] || theme;
+      const { videos, nextPageToken: newNextPageToken } = await fetchThemeVideos(description, nextPageToken);
+      setNextPageToken(newNextPageToken);
+
+      if (videos.length === 0) {
+        return;
+      }
+
+      const { tracks: moreTracks, usedFallback } = await classifyOrFallback(
+        videos,
+        theme,
+        "From additional theme search results"
+      );
+      const mergedTracks = mergeUniqueTracks(tracks, moreTracks);
+      setTracks(mergedTracks);
+
+      if (usedFallback) {
+        setError("AI classification unavailable for the new songs, showing search results");
+      }
+    } catch (error) {
+      console.error("Error loading more tracks:", error);
+      setError(error instanceof Error ? error.message : "Unable to load more tracks");
+    } finally {
+      setIsLoadingMore(false);
     }
   }
 
@@ -239,11 +324,27 @@ export default function ThemePage() {
           </div>
 
           {tracks.length > 0 && (
-            <TrackList
-              tracks={tracks}
-              currentTrack={currentTrack}
-              onSelectTrack={handleSelectTrack}
-            />
+            <>
+              <TrackList
+                tracks={tracks}
+                currentTrack={currentTrack}
+                onSelectTrack={handleSelectTrack}
+              />
+              {nextPageToken && (
+                <section className="w-full bg-black px-8 pb-12">
+                  <div className="mx-auto flex max-w-3xl justify-center">
+                    <button
+                      type="button"
+                      onClick={handleLoadMore}
+                      disabled={isLoadingMore}
+                      className="rounded-lg bg-white px-6 py-3 font-semibold text-black transition hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {isLoadingMore ? "Loading more..." : "Load more songs"}
+                    </button>
+                  </div>
+                </section>
+              )}
+            </>
           )}
         </>
       )}

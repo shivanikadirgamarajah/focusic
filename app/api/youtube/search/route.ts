@@ -1,8 +1,40 @@
 import { NextResponse } from "next/server";
 
+type YoutubeSearchItem = {
+  id: {
+    videoId: string;
+  };
+  snippet: {
+    title: string;
+    channelTitle: string;
+    thumbnails: {
+      medium?: {
+        url: string;
+      };
+    };
+  };
+};
+
+type YoutubeSearchApiResponse = {
+  items?: YoutubeSearchItem[];
+  nextPageToken?: string;
+};
+
+type YoutubeVideoDetailsItem = {
+  id: string;
+  contentDetails?: {
+    duration?: string;
+  };
+};
+
+type YoutubeVideosApiResponse = {
+  items?: YoutubeVideoDetailsItem[];
+};
+
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const q = searchParams.get("q") || "ambient focus music";
+  const pageToken = searchParams.get("pageToken");
 
   try {
     if (!process.env.YOUTUBE_API_KEY) {
@@ -21,6 +53,9 @@ export async function GET(req: Request) {
     youtubeUrl.searchParams.set("q", q);
     youtubeUrl.searchParams.set("type", "video");
     youtubeUrl.searchParams.set("maxResults", "10");
+    if (pageToken) {
+      youtubeUrl.searchParams.set("pageToken", pageToken);
+    }
     youtubeUrl.searchParams.set("key", process.env.YOUTUBE_API_KEY);
 
     const response = await fetch(youtubeUrl);
@@ -37,7 +72,7 @@ export async function GET(req: Request) {
       try {
         const parsed = JSON.parse(errorData);
         errorDetails = parsed.error?.message || JSON.stringify(parsed);
-      } catch (e) {
+      } catch {
         // Keep errorData as-is if not JSON
       }
       
@@ -55,7 +90,7 @@ export async function GET(req: Request) {
       );
     }
 
-    const data = await response.json();
+    const data = (await response.json()) as YoutubeSearchApiResponse;
 
     if (!data.items || data.items.length === 0) {
       console.warn("No items returned from YouTube API for query:", q);
@@ -66,7 +101,7 @@ export async function GET(req: Request) {
     }
 
     // Extract video IDs for the second API call to get durations
-    const videoIds = data.items.map((item: any) => item.id.videoId).join(",");
+    const videoIds = data.items.map((item) => item.id.videoId).join(",");
 
     // Fetch video durations
     const videosUrl = new URL("https://www.googleapis.com/youtube/v3/videos");
@@ -75,18 +110,20 @@ export async function GET(req: Request) {
     videosUrl.searchParams.set("key", process.env.YOUTUBE_API_KEY);
 
     const videosResponse = await fetch(videosUrl);
-    const videosData = videosResponse.ok ? await videosResponse.json() : { items: [] };
+    const videosData: YoutubeVideosApiResponse = videosResponse.ok
+      ? ((await videosResponse.json()) as YoutubeVideosApiResponse)
+      : { items: [] };
 
     // Map duration data by videoId for quick lookup
     const durationMap: Record<string, string> = {};
     if (videosData.items) {
-      videosData.items.forEach((item: any) => {
+      videosData.items.forEach((item) => {
         if (item.contentDetails?.duration) {
           // Convert ISO 8601 duration to MM:SS or H:MM:SS
           const match = item.contentDetails.duration.match(/PT(\d+H)?(\d+M)?(\d+S)?/);
-          const hours = parseInt(match?.[1] || 0);
-          const minutes = parseInt(match?.[2] || 0);
-          const seconds = parseInt(match?.[3] || 0);
+          const hours = parseInt(match?.[1] || "0", 10);
+          const minutes = parseInt(match?.[2] || "0", 10);
+          const seconds = parseInt(match?.[3] || "0", 10);
           const totalSeconds = hours * 3600 + minutes * 60 + seconds;
           const displayHours = Math.floor(totalSeconds / 3600);
           const displayMinutes = Math.floor((totalSeconds % 3600) / 60);
@@ -101,7 +138,7 @@ export async function GET(req: Request) {
       });
     }
 
-    const videos = data.items.map((item: any) => ({
+    const videos = data.items.map((item) => ({
       videoId: item.id.videoId,
       title: item.snippet.title,
       channel: item.snippet.channelTitle,

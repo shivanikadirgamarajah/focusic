@@ -1,6 +1,6 @@
 "use client";
 
-import { Track } from "@/app/types";
+import { filterVisibleFocusTracks, Track } from "@/app/types";
 import { useState, useEffect } from "react";
 
 interface TrackListProps {
@@ -9,50 +9,37 @@ interface TrackListProps {
   onSelectTrack: (track: Track) => void;
 }
 
-const getRelativeTime = (timestamp?: number) => {
-  if (!timestamp) return "";
-
-  const now = Date.now();
-  const diffMs = now - timestamp;
-  const diffSecs = Math.floor(diffMs / 1000);
-  const diffMins = Math.floor(diffSecs / 60);
-  const diffHours = Math.floor(diffMins / 60);
-  const diffDays = Math.floor(diffHours / 24);
-
-  if (diffSecs < 60) return "just now";
-  if (diffMins < 60) return `${diffMins} minute${diffMins > 1 ? "s" : ""} ago`;
-  if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? "s" : ""} ago`;
-  return `${diffDays} day${diffDays > 1 ? "s" : ""} ago`;
-};
-
 export default function TrackList({
   tracks,
   currentTrack,
   onSelectTrack,
 }: TrackListProps) {
   const [likedSongs, setLikedSongs] = useState<Set<string>>(new Set());
+  const visibleTracks = filterVisibleFocusTracks(tracks);
 
   // Load liked songs from localStorage
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem("likedSongs");
-      if (saved) {
-        const songs = JSON.parse(saved);
-        setLikedSongs(new Set(songs.map((s: any) => s.videoId)));
+    void Promise.resolve().then(() => {
+      try {
+        const saved = localStorage.getItem("likedSongs");
+        if (saved) {
+          const songs = JSON.parse(saved) as Track[];
+          setLikedSongs(new Set(songs.map((song) => song.videoId)));
+        }
+      } catch (error) {
+        console.error("Error loading liked songs:", error);
       }
-    } catch (error) {
-      console.error("Error loading liked songs:", error);
-    }
+    });
   }, []);
 
   const toggleLike = (e: React.MouseEvent<HTMLButtonElement>, track: Track) => {
     e.stopPropagation();
 
     try {
-      let saved = localStorage.getItem("likedSongs");
-      let likedTracks = saved ? JSON.parse(saved) : [];
+      const saved = localStorage.getItem("likedSongs");
+      const likedTracks = saved ? JSON.parse(saved) as Track[] : [];
 
-      const index = likedTracks.findIndex((t: any) => t.videoId === track.videoId);
+      const index = likedTracks.findIndex((likedTrack) => likedTrack.videoId === track.videoId);
 
       if (index > -1) {
         // Remove if already liked
@@ -77,14 +64,14 @@ export default function TrackList({
     }
   };
 
-  if (tracks.length === 0) return null;
+  if (visibleTracks.length === 0) return null;
 
   return (
     <section className="w-full bg-black py-12">
       
 
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-3 2xl:grid-cols-7 gap-4 auto-rows-fr">
-        {tracks.map((track) => (
+        {visibleTracks.map((track) => (
           <div
             key={track.videoId}
             className={`rounded-lg overflow-hidden border-2 transition transform hover:scale-105 flex flex-col h-full relative group cursor-pointer ${

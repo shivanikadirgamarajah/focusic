@@ -89,7 +89,6 @@ export default function PersistentMusicBar() {
     () => isTrackLiked(currentTrack?.videoId),
     () => false
   );
-  const [isAudioPlaying, setIsAudioPlaying] = useState(false);
   const [playbackNotice, setPlaybackNotice] = useState<{ videoId: string; message: string } | null>(null);
   const progressBarRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<YouTubePlayer | null>(null);
@@ -108,6 +107,11 @@ export default function PersistentMusicBar() {
   useEffect(() => {
     isPlayingRef.current = isPlaying;
   }, [isPlaying]);
+
+  const requestPlayback = useCallback((playing: boolean) => {
+    isPlayingRef.current = playing;
+    setIsPlaying(playing);
+  }, [setIsPlaying]);
 
   useEffect(() => {
     currentTrackRef.current = currentTrack;
@@ -168,9 +172,8 @@ export default function PersistentMusicBar() {
     const failedTrack = currentTrackRef.current;
     const isEmbedBlocked = errorCode === 101 || errorCode === 150;
 
-      if (isEmbedBlocked && failedTrack) {
+    if (isEmbedBlocked && failedTrack) {
       blockedVideoIdsRef.current.add(failedTrack.videoId);
-      setIsAudioPlaying(false);
       setPlaybackNotice({
         videoId: failedTrack.videoId,
         message: "This track cannot play here. Skipping to the next one.",
@@ -181,19 +184,18 @@ export default function PersistentMusicBar() {
           playNextRef.current();
         }, 300);
       } else {
-        setIsPlaying(false);
+        requestPlayback(false);
       }
       return;
     }
 
     console.warn("YouTube player error:", errorCode);
-    setIsAudioPlaying(false);
     setPlaybackNotice({
       videoId: failedTrack?.videoId ?? "",
       message: "This track could not be played.",
     });
-    setIsPlaying(false);
-  }, [setIsPlaying]);
+    requestPlayback(false);
+  }, [requestPlayback]);
 
   // Initialize player on demand
   const initializePlayer = useCallback(() => {
@@ -234,23 +236,24 @@ export default function PersistentMusicBar() {
               if (isNavigatingRef.current) return;
 
               if (e.data === youtube.PlayerState.PLAYING) {
-                setIsAudioPlaying(true);
-                setIsPlaying(true);
+                requestPlayback(true);
+                return;
+              }
+
+              if (e.data === youtube.PlayerState.PAUSED) {
+                requestPlayback(false);
                 return;
               }
 
               if (
-                e.data === youtube.PlayerState.PAUSED ||
                 e.data === youtube.PlayerState.CUED ||
-                e.data === youtube.PlayerState.UNSTARTED
+                e.data === youtube.PlayerState.UNSTARTED ||
+                e.data === youtube.PlayerState.BUFFERING
               ) {
-                setIsAudioPlaying(false);
-                setIsPlaying(false);
                 return;
               }
 
               if (e.data === youtube.PlayerState.ENDED && playerRef.current) {
-                setIsAudioPlaying(false);
                 try {
                   playNextRef.current();
                 } catch (e) {
@@ -271,7 +274,7 @@ export default function PersistentMusicBar() {
     };
 
     checkAndInit();
-  }, [currentTrack?.videoId, handlePlayerError, setIsPlaying]);
+  }, [currentTrack?.videoId, handlePlayerError, requestPlayback]);
 
   // Load YouTube script and create player container outside React tree
   useEffect(() => {
@@ -314,14 +317,14 @@ export default function PersistentMusicBar() {
       if (tracks.length > 1) {
         playNextRef.current();
       } else {
-        setIsPlaying(false);
+        requestPlayback(false);
       }
       return;
     }
 
     try {
       console.log("Loading:", currentTrack.videoId);
-      if (isPlaying) {
+      if (isPlayingRef.current) {
         playerRef.current.loadVideoById(currentTrack.videoId);
       } else {
         playerRef.current.cueVideoById?.(currentTrack.videoId);
@@ -329,7 +332,7 @@ export default function PersistentMusicBar() {
     } catch (e) {
       console.warn("Load error:", e);
     }
-  }, [currentTrack?.videoId, tracks.length, isPlaying, setIsPlaying]);
+  }, [currentTrack?.videoId, tracks.length, requestPlayback]);
 
   // Control playback
   useEffect(() => {
@@ -511,17 +514,13 @@ export default function PersistentMusicBar() {
             <button
               onClick={() => {
                 initializePlayer();
-                if (!playerRef.current) {
-                  console.warn("⚠️ Player initializing, try again in a moment");
-                  return;
-                }
-                setIsPlaying(!isAudioPlaying);
+                requestPlayback(!isPlaying);
               }}
               className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg font-semibold transition"
             >
               
-              <span className="hidden sm:inline">{isAudioPlaying ? "⏸ Pause" : "▶ Play"}</span>
-              <span className="sm:hidden">{isAudioPlaying ? "⏸" : "▶"}</span>
+              <span className="hidden sm:inline">{isPlaying ? "⏸ Pause" : "▶ Play"}</span>
+              <span className="sm:hidden">{isPlaying ? "⏸" : "▶"}</span>
             </button>
             {tracks.length > 1 && (
               <button

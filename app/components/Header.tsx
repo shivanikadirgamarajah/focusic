@@ -33,7 +33,7 @@ export default function Header() {
         <Link href="/" className="flex items-center gap-2 group" onClick={handleLinkClick}>
           
           <div>
-            <h1 className="text-2xl sm:text-4xl font-bold text-white group-hover:text-blue-400 transition">
+            <h1 className="text-3xl sm:text-5xl font-bold text-white group-hover:text-blue-400 transition">
               Focusic
             </h1>
             <p className="hidden sm:block text-xs text-gray-400">Ambient music for focus</p>

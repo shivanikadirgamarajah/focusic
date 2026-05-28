@@ -1,33 +1,121 @@
 "use client";
 
 import { useMusic } from "@/app/context/MusicContext";
-import { useState, useEffect, useRef, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, useRef, useCallback, useSyncExternalStore } from "react";
+import { Track } from "@/app/types";
+
+const likedSongsUpdatedEvent = "focusic:likedSongsUpdated";
+
+type YouTubePlayer = {
+  loadVideoById: (videoId: string) => void;
+  cueVideoById?: (videoId: string) => void;
+  pauseVideo?: () => void;
+  playVideo?: () => void;
+  stopVideo?: () => void;
+  getCurrentTime?: () => number;
+  getDuration?: () => number;
+  seekTo?: (seconds: number) => void;
+};
+
+type YouTubeEvent = {
+  data: number;
+};
 
 declare global {
   interface Window {
-    YT: any;
+    YT?: {
+      Player?: new (
+        elementId: string,
+        options: {
+          height: string;
+          width: string;
+          videoId: string;
+          events: {
+            onReady: () => void;
+            onStateChange: (event: YouTubeEvent) => void;
+            onError: (event: YouTubeEvent) => void;
+          };
+        }
+      ) => YouTubePlayer;
+      PlayerState: {
+        UNSTARTED: number;
+        ENDED: number;
+        PLAYING: number;
+        PAUSED: number;
+        BUFFERING: number;
+        CUED: number;
+      };
+    };
     onYouTubeIframeAPIReady: () => void;
   }
 }
 
+function subscribeToLikedSongs(onStoreChange: () => void) {
+  window.addEventListener("storage", onStoreChange);
+  window.addEventListener(likedSongsUpdatedEvent, onStoreChange);
+
+  return () => {
+    window.removeEventListener("storage", onStoreChange);
+    window.removeEventListener(likedSongsUpdatedEvent, onStoreChange);
+  };
+}
+
+function isTrackLiked(videoId?: string) {
+  if (!videoId || typeof window === "undefined") {
+    return false;
+  }
+
+  try {
+    const saved = window.localStorage.getItem("likedSongs");
+    const songs = saved ? (JSON.parse(saved) as Track[]) : [];
+    return songs.some((song) => song.videoId === videoId);
+  } catch {
+    return false;
+  }
+}
+
+function notifyLikedSongsUpdated() {
+  window.dispatchEvent(new Event(likedSongsUpdatedEvent));
+}
+
 export default function PersistentMusicBar() {
   const { currentTrack, tracks, isPlaying, setIsPlaying, playNext } = useMusic();
-  const router = useRouter();
   const [progress, setProgress] = useState(0);
   const [elapsedTime, setElapsedTime] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const [duration, setDuration] = useState(0);
-  const [isLiked, setIsLiked] = useState(false);
+  const isLiked = useSyncExternalStore(
+    subscribeToLikedSongs,
+    () => isTrackLiked(currentTrack?.videoId),
+    () => false
+  );
+  const [isAudioPlaying, setIsAudioPlaying] = useState(false);
+  const [playbackNotice, setPlaybackNotice] = useState<{ videoId: string; message: string } | null>(null);
   const progressBarRef = useRef<HTMLDivElement>(null);
-  const playerRef = useRef<any>(null);
+  const playerRef = useRef<YouTubePlayer | null>(null);
   const playNextRef = useRef(playNext);
+  const isPlayingRef = useRef(isPlaying);
   const isNavigatingRef = useRef(false);
+  const currentTrackRef = useRef(currentTrack);
+  const tracksRef = useRef(tracks);
+  const blockedVideoIdsRef = useRef(new Set<string>());
 
   // Keep ref in sync with playNext
   useEffect(() => {
     playNextRef.current = playNext;
   }, [playNext]);
+
+  useEffect(() => {
+    isPlayingRef.current = isPlaying;
+  }, [isPlaying]);
+
+  useEffect(() => {
+    currentTrackRef.current = currentTrack;
+  }, [currentTrack]);
+
+  useEffect(() => {
+    tracksRef.current = tracks;
+  }, [tracks]);
 
   // Detect navigation and safely cleanup player
   useEffect(() => {
@@ -38,7 +126,7 @@ export default function PersistentMusicBar() {
       if (playerRef.current) {
         try {
           playerRef.current.pauseVideo?.();
-        } catch (e) {
+        } catch {
           // Ignore errors during navigation cleanup
         }
       }
@@ -52,43 +140,60 @@ export default function PersistentMusicBar() {
     };
   }, []);
 
-  // Check if current track is liked
-  useEffect(() => {
-    if (!currentTrack) return;
-
-    try {
-      const saved = localStorage.getItem("likedSongs");
-      if (saved) {
-        const songs = JSON.parse(saved);
-        setIsLiked(songs.some((s: any) => s.videoId === currentTrack.videoId));
-      }
-    } catch (error) {
-      console.error("Error checking liked status:", error);
-    }
-  }, [currentTrack?.videoId]);
-
   const toggleLike = () => {
     if (!currentTrack) return;
 
     try {
-      let saved = localStorage.getItem("likedSongs");
-      let likedTracks = saved ? JSON.parse(saved) : [];
+      const saved = localStorage.getItem("likedSongs");
+      const likedTracks = saved ? (JSON.parse(saved) as Track[]) : [];
 
-      const index = likedTracks.findIndex((t: any) => t.videoId === currentTrack.videoId);
+      const index = likedTracks.findIndex((track) => track.videoId === currentTrack.videoId);
 
       if (index > -1) {
         likedTracks.splice(index, 1);
-        setIsLiked(false);
       } else {
         likedTracks.push(currentTrack);
-        setIsLiked(true);
       }
 
       localStorage.setItem("likedSongs", JSON.stringify(likedTracks));
+      notifyLikedSongsUpdated();
     } catch (error) {
       console.error("Error toggling like:", error);
     }
   };
+
+  const handlePlayerError = useCallback((errorCode: number) => {
+    if (isNavigatingRef.current) return;
+
+    const failedTrack = currentTrackRef.current;
+    const isEmbedBlocked = errorCode === 101 || errorCode === 150;
+
+      if (isEmbedBlocked && failedTrack) {
+      blockedVideoIdsRef.current.add(failedTrack.videoId);
+      setIsAudioPlaying(false);
+      setPlaybackNotice({
+        videoId: failedTrack.videoId,
+        message: "This track cannot play here. Skipping to the next one.",
+      });
+
+      if (tracksRef.current.length > 1) {
+        window.setTimeout(() => {
+          playNextRef.current();
+        }, 300);
+      } else {
+        setIsPlaying(false);
+      }
+      return;
+    }
+
+    console.warn("YouTube player error:", errorCode);
+    setIsAudioPlaying(false);
+    setPlaybackNotice({
+      videoId: failedTrack?.videoId ?? "",
+      message: "This track could not be played.",
+    });
+    setIsPlaying(false);
+  }, [setIsPlaying]);
 
   // Initialize player on demand
   const initializePlayer = useCallback(() => {
@@ -103,9 +208,11 @@ export default function PersistentMusicBar() {
 
       const container = document.getElementById('youtube-player-container');
       if (!container) return;
+      const youtube = window.YT;
+      if (!youtube?.Player) return;
 
       try {
-        playerRef.current = new window.YT.Player('youtube-player-container', {
+        playerRef.current = new youtube.Player('youtube-player-container', {
           height: '0',
           width: '0',
           videoId: 'dQw4w9WgXcQ',
@@ -113,14 +220,37 @@ export default function PersistentMusicBar() {
             onReady: () => {
               if (playerRef.current && currentTrack?.videoId && !isNavigatingRef.current) {
                 try {
-                  playerRef.current.loadVideoById(currentTrack.videoId);
+                  if (isPlayingRef.current) {
+                    playerRef.current.loadVideoById(currentTrack.videoId);
+                  } else {
+                    playerRef.current.cueVideoById?.(currentTrack.videoId);
+                  }
                 } catch (e) {
                   console.warn("Load on ready error:", e);
                 }
               }
             },
-            onStateChange: (e: any) => {
-              if (!isNavigatingRef.current && e.data === window.YT.PlayerState.ENDED && playerRef.current) {
+            onStateChange: (e) => {
+              if (isNavigatingRef.current) return;
+
+              if (e.data === youtube.PlayerState.PLAYING) {
+                setIsAudioPlaying(true);
+                setIsPlaying(true);
+                return;
+              }
+
+              if (
+                e.data === youtube.PlayerState.PAUSED ||
+                e.data === youtube.PlayerState.CUED ||
+                e.data === youtube.PlayerState.UNSTARTED
+              ) {
+                setIsAudioPlaying(false);
+                setIsPlaying(false);
+                return;
+              }
+
+              if (e.data === youtube.PlayerState.ENDED && playerRef.current) {
+                setIsAudioPlaying(false);
                 try {
                   playNextRef.current();
                 } catch (e) {
@@ -128,10 +258,8 @@ export default function PersistentMusicBar() {
                 }
               }
             },
-            onError: (e: any) => {
-              if (!isNavigatingRef.current) {
-                console.error("Player error:", e.data);
-              }
+            onError: (e) => {
+              handlePlayerError(e.data);
             }
           }
         });
@@ -143,7 +271,7 @@ export default function PersistentMusicBar() {
     };
 
     checkAndInit();
-  }, [currentTrack?.videoId]);
+  }, [currentTrack?.videoId, handlePlayerError, setIsPlaying]);
 
   // Load YouTube script and create player container outside React tree
   useEffect(() => {
@@ -178,13 +306,30 @@ export default function PersistentMusicBar() {
   useEffect(() => {
     if (!currentTrack?.videoId || !playerRef.current) return;
 
+    if (blockedVideoIdsRef.current.has(currentTrack.videoId)) {
+      setPlaybackNotice({
+        videoId: currentTrack.videoId,
+        message: "This track cannot play here. Skipping to the next one.",
+      });
+      if (tracks.length > 1) {
+        playNextRef.current();
+      } else {
+        setIsPlaying(false);
+      }
+      return;
+    }
+
     try {
       console.log("Loading:", currentTrack.videoId);
-      playerRef.current.loadVideoById?.(currentTrack.videoId);
+      if (isPlaying) {
+        playerRef.current.loadVideoById(currentTrack.videoId);
+      } else {
+        playerRef.current.cueVideoById?.(currentTrack.videoId);
+      }
     } catch (e) {
       console.warn("Load error:", e);
     }
-  }, [currentTrack?.videoId]);
+  }, [currentTrack?.videoId, tracks.length, isPlaying, setIsPlaying]);
 
   // Control playback
   useEffect(() => {
@@ -217,7 +362,7 @@ export default function PersistentMusicBar() {
           setProgress((currentTime / videoDuration) * 100);
           setDuration(Math.floor(videoDuration));
         }
-      } catch (error) {
+      } catch {
         // Player methods may not be ready or player destroyed
       }
     }, 100);
@@ -231,7 +376,7 @@ export default function PersistentMusicBar() {
       if (playerRef.current) {
         try {
           playerRef.current.stopVideo?.();
-        } catch (e) {
+        } catch {
           // Ignore errors during cleanup
         }
       }
@@ -244,6 +389,8 @@ export default function PersistentMusicBar() {
     const secs = seconds % 60;
     return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
+  const currentPlaybackNotice =
+    playbackNotice?.videoId === currentTrack?.videoId ? playbackNotice?.message ?? "" : "";
 
   const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!playerRef.current || !duration) return;
@@ -343,7 +490,9 @@ export default function PersistentMusicBar() {
           <div className="flex-1 min-w-0">
             <p className="font-semibold text-white truncate">{currentTrack.title}</p>
             <p className="text-sm text-gray-400">{currentTrack.channel}</p>
-            <p className="text-xs text-gray-500 mt-1">{formatTime(elapsedTime)}</p>
+            <p className="text-xs text-gray-500 mt-1">
+              {currentPlaybackNotice || formatTime(elapsedTime)}
+            </p>
           </div>
 
           <div className="flex gap-2 flex-shrink-0">
@@ -366,13 +515,13 @@ export default function PersistentMusicBar() {
                   console.warn("⚠️ Player initializing, try again in a moment");
                   return;
                 }
-                setIsPlaying(!isPlaying);
+                setIsPlaying(!isAudioPlaying);
               }}
               className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg font-semibold transition"
             >
               
-              <span className="hidden sm:inline">{isPlaying ? "⏸ Pause" : "▶ Play"}</span>
-              <span className="sm:hidden">{isPlaying ? "⏸" : "▶"}</span>
+              <span className="hidden sm:inline">{isAudioPlaying ? "⏸ Pause" : "▶ Play"}</span>
+              <span className="sm:hidden">{isAudioPlaying ? "⏸" : "▶"}</span>
             </button>
             {tracks.length > 1 && (
               <button

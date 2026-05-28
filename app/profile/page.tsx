@@ -8,6 +8,7 @@ import { UserPreferences } from "@/app/components/Onboarding";
 const preferencesUpdatedEvent = "focusic:userPreferencesUpdated";
 let cachedPreferencesJson: string | null = null;
 let cachedPreferences: UserPreferences | null = null;
+const workTypes = ["Coding", "Studying", "Writing", "Design", "Other"];
 
 function isUserPreferences(value: unknown): value is UserPreferences {
   if (!value || typeof value !== "object") {
@@ -131,119 +132,220 @@ export default function ProfilePage() {
 
   if (!preferences) {
     return (
-      <main className="min-h-screen bg-black text-white p-8">
-        <div className="mx-auto max-w-2xl">
-          <h1 className="text-4xl font-bold mb-8">Create Your Profile </h1>
-          
-          <form onSubmit={handleCreateProfile} className="rounded-lg border border-gray-700 p-8 space-y-6">
-            {/* Name Input */}
-            <div>
-              <label htmlFor="profile-name" className="block text-white font-semibold mb-2">Your Name</label>
-              <input
-                id="profile-name"
-                name="name"
-                type="text"
-                placeholder="Enter your name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
-                className="w-full rounded-lg bg-gray-700 text-white px-4 py-3 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-              />
-            </div>
+      <main className="min-h-screen bg-black px-4 py-10 text-white sm:px-8">
+        <div className="mx-auto max-w-4xl space-y-8">
+          <section className="space-y-3">
+            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-cyan-300">
+              Profile setup
+            </p>
+            <h1 className="max-w-2xl text-4xl font-bold sm:text-5xl">Create your focus profile</h1>
+            <p className="max-w-2xl text-base text-gray-400">
+              Personalize your timer and recommendations around the kind of work you do most.
+            </p>
+          </section>
 
-            {/* Work Type Selection */}
-            <div>
-              <fieldset>
-                <legend className="block text-white font-semibold mb-2">What do you work on?</legend>
-                <div className="space-y-2">
-                {["Coding", "Studying", "Writing", "Design", "Other"].map((type) => (
-                  <label
-                    key={type}
-                    htmlFor={`work-type-${type.toLowerCase()}`}
-                    onClick={() => setWorkType(type)}
-                    className={`flex w-full cursor-pointer items-center gap-3 rounded-lg px-4 py-3 font-semibold transition ${
-                      workType === type
-                        ? "bg-blue-500 text-white"
-                        : "bg-gray-700 text-gray-200 hover:bg-gray-600"
-                    }`}
-                  >
-                    <input
-                      id={`work-type-${type.toLowerCase()}`}
-                      type="radio"
-                      name="workType"
-                      value={type}
-                      checked={workType === type}
-                      onChange={() => setWorkType(type)}
-                      className="h-4 w-4 accent-blue-500"
-                      required
-                    />
-                    {type}
+          <form
+            onSubmit={handleCreateProfile}
+            className="rounded-lg border border-gray-800 bg-gray-950/80 p-5 shadow-2xl shadow-black/30 sm:p-8"
+          >
+            <div className="grid gap-8 lg:grid-cols-[1fr_1.05fr]">
+              <section className="space-y-5">
+                <div>
+                  <label htmlFor="profile-name" className="block text-sm font-semibold text-gray-200">
+                    Your Name
                   </label>
-                ))}
+                  <input
+                    id="profile-name"
+                    name="name"
+                    type="text"
+                    placeholder="Enter your name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    required
+                    className="mt-2 w-full rounded-lg border border-gray-700 bg-black px-4 py-3 text-white placeholder-gray-500 transition focus:border-cyan-400 focus:outline-none focus:ring-2 focus:ring-cyan-400/30"
+                  />
                 </div>
-              </fieldset>
+
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
+                  <label className="rounded-lg border border-gray-800 bg-black/60 p-4">
+                    <span className="block text-sm font-semibold text-gray-300">Focus Time</span>
+                    <span className="mt-2 block text-3xl font-bold text-white">{focusLength} min</span>
+                    <input
+                      type="range"
+                      min="10"
+                      max="60"
+                      value={focusLength}
+                      onChange={(e) => setFocusLength(parseInt(e.target.value))}
+                      className="mt-4 w-full accent-cyan-400"
+                    />
+                  </label>
+
+                  <label className="rounded-lg border border-gray-800 bg-black/60 p-4">
+                    <span className="block text-sm font-semibold text-gray-300">Break Time</span>
+                    <span className="mt-2 block text-3xl font-bold text-white">{breakLength} min</span>
+                    <input
+                      type="range"
+                      min="1"
+                      max="15"
+                      value={breakLength}
+                      onChange={(e) => setBreakLength(parseInt(e.target.value))}
+                      className="mt-4 w-full accent-emerald-400"
+                    />
+                  </label>
+                </div>
+              </section>
+
+              <section className="space-y-5">
+                <fieldset>
+                  <legend className="text-sm font-semibold text-gray-200">What do you work on?</legend>
+                  <div className="mt-2 grid gap-3 sm:grid-cols-2">
+                    {workTypes.map((type) => (
+                      <label
+                        key={type}
+                        htmlFor={`work-type-${type.toLowerCase()}`}
+                        onClick={() => setWorkType(type)}
+                        className={`flex min-h-14 w-full cursor-pointer items-center gap-3 rounded-lg border px-4 py-3 font-semibold transition ${
+                          workType === type
+                            ? "border-cyan-300 bg-cyan-400/15 text-white shadow-lg shadow-cyan-950/30"
+                            : "border-gray-800 bg-black/60 text-gray-300 hover:border-gray-600 hover:bg-gray-900"
+                        }`}
+                      >
+                        <input
+                          id={`work-type-${type.toLowerCase()}`}
+                          type="radio"
+                          name="workType"
+                          value={type}
+                          checked={workType === type}
+                          onChange={() => setWorkType(type)}
+                          className="h-4 w-4 accent-cyan-400"
+                          required
+                        />
+                        {type}
+                      </label>
+                    ))}
+                  </div>
+                </fieldset>
+
+                <div className="rounded-lg border border-gray-800 bg-black/60 p-4">
+                  <p className="text-sm font-semibold text-gray-300">Starting Settings</p>
+                  <div className="mt-4 grid grid-cols-3 gap-3 text-sm">
+                    <div>
+                      <p className="text-gray-500">Mode</p>
+                      <p className="mt-1 font-semibold text-white">{workType || "Choose one"}</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-500">Focus</p>
+                      <p className="mt-1 font-semibold text-white">{focusLength} min</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-500">Break</p>
+                      <p className="mt-1 font-semibold text-white">{breakLength} min</p>
+                    </div>
+                  </div>
+                </div>
+              </section>
             </div>
 
-            {/* Focus Length */}
-            
-
-            {/* Create Button */}
-            <button
-              type="submit"
-              className="w-full rounded-lg bg-blue-600 hover:bg-blue-700 px-4 py-3 font-semibold text-white transition"
-            >
-              Create Profile
-            </button>
+            <div className="mt-8 flex justify-end">
+              <button
+                type="submit"
+                className="w-full rounded-lg bg-white px-5 py-3 font-semibold text-black transition hover:bg-cyan-100 sm:w-auto"
+              >
+                Create Profile
+              </button>
+            </div>
           </form>
         </div>
       </main>
     );
   }
 
+  const totalFocusTime = preferences.totalFocusTime ?? 0;
+  const totalFocusHours = Math.floor(totalFocusTime / 60);
+  const totalFocusMinutes = totalFocusTime % 60;
+
   return (
-    <main className="min-h-screen bg-black text-white p-8">
-      <div className="mx-auto max-w-5xl space-y-8">
-        <h1 className="text-4xl font-bold">{preferences.name}&apos;s Ambience</h1>
-
-        <div className="rounded-lg border border-gray-700 p-6 space-y-6">
-          <div>
-            <p className="text-gray-400 text-sm mb-1">Name</p>
-            <p className="text-2xl font-bold">{preferences.name}</p>
-          </div>
-
-          <div>
-            <p className="text-gray-400 text-sm mb-1">Work Type</p>
-            <p className="text-2xl font-bold">{preferences.workType}</p>
-          </div>
-
-         
-
-          <div className="rounded-lg bg-blue-950 border border-blue-700 p-4">
-            <p className="text-gray-400 text-sm mb-1">Total Focus Time</p>
-            <p className="text-3xl font-bold text-blue-400">
-              {Math.floor((preferences.totalFocusTime ?? 0) / 60)}h {(preferences.totalFocusTime ?? 0) % 60}m
+    <main className="min-h-screen bg-black px-4 py-10 text-white sm:px-8">
+      <div className="mx-auto max-w-6xl space-y-8">
+        <section className="flex flex-col justify-between gap-6 border-b border-gray-800 pb-8 lg:flex-row lg:items-end">
+          <div className="space-y-3">
+            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-cyan-300">
+              Focus profile
+            </p>
+            <h1 className="text-3xl font-bold sm:text-3xl">{preferences.name}&apos;s Ambience</h1>
+            <p className="max-w-2xl text-gray-400">
+              Your focus setup, session history, and timer preferences in one place.
             </p>
           </div>
-        </div>
 
-        <div className="rounded-lg border border-gray-700 p-6">
-          <ActivityCalendar />
-        </div>
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <Link
+              href="/timer"
+              className="rounded-lg border border-gray-700 px-5 py-3 text-center font-semibold text-gray-200 transition hover:border-cyan-400 hover:text-white"
+            >
+              Back to Timer
+            </Link>
+            <button
+              onClick={handleClearAll}
+              className="rounded-lg border border-red-900/80 px-5 py-3 font-semibold text-red-200 transition hover:border-red-500 hover:bg-red-950/40"
+            >
+              Reset Profile
+            </button>
+          </div>
+        </section>
 
-        <div className="flex gap-3">
-          <Link
-            href="/timer"
-            className="flex-1 rounded-lg border border-gray-700 px-5 py-3 font-semibold hover:bg-gray-900 transition text-center"
-          >
-            ← Back to Timer
-          </Link>
-          <button
-            onClick={handleClearAll}
-            className="flex-1 rounded-lg border border-red-700 px-5 py-3 font-semibold hover:bg-red-950 transition"
-          >
-            🔄 Reset Profile
-          </button>
-        </div>
+        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <div className="rounded-lg border border-gray-800 bg-gray-950/80 p-5">
+            <p className="text-sm font-semibold text-gray-400">Name</p>
+            <p className="mt-3 truncate text-3xl font-bold">{preferences.name}</p>
+          </div>
+
+          <div className="rounded-lg border border-gray-800 bg-gray-950/80 p-5">
+            <p className="text-sm font-semibold text-gray-400">Work Type</p>
+            <p className="mt-3 text-3xl font-bold">{preferences.workType}</p>
+          </div>
+
+          <div className="rounded-lg border border-cyan-900/80 bg-cyan-950/20 p-5">
+            <p className="text-sm font-semibold text-cyan-200">Total Focus</p>
+            <p className="mt-3 text-3xl font-bold text-cyan-100">
+              {totalFocusHours}h {totalFocusMinutes}m
+            </p>
+          </div>
+
+          <div className="rounded-lg border border-emerald-900/80 bg-emerald-950/20 p-5">
+            <p className="text-sm font-semibold text-emerald-200">Timer Rhythm</p>
+            <p className="mt-3 text-3xl font-bold text-emerald-100">
+              {preferences.focusLength} / {preferences.breakLength}
+            </p>
+            <p className="mt-1 text-sm text-gray-400">focus / break minutes</p>
+          </div>
+        </section>
+
+        <section className="grid gap-6 lg:grid-cols-[0.9fr_1.4fr]">
+          <div className="rounded-lg border border-gray-800 bg-gray-950/80 p-6">
+            <h2 className="text-xl font-bold">Preferences</h2>
+            <div className="mt-6 space-y-5">
+              <div className="flex items-center justify-between border-b border-gray-800 pb-4">
+                <span className="text-gray-400">Focus session</span>
+                <span className="font-semibold text-white">{preferences.focusLength} min</span>
+              </div>
+              <div className="flex items-center justify-between border-b border-gray-800 pb-4">
+                <span className="text-gray-400">Break session</span>
+                <span className="font-semibold text-white">{preferences.breakLength} min</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-gray-400">Profile status</span>
+                <span className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 text-sm font-semibold text-emerald-200">
+                  Active
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-lg border border-gray-800 bg-gray-950/80 p-6">
+            <ActivityCalendar />
+          </div>
+        </section>
       </div>
     </main>
   );

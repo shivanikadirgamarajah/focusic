@@ -21,26 +21,30 @@ export function TimerProvider({ children }: { children: ReactNode }) {
 
   // Load timer state from localStorage on mount
   useEffect(() => {
-    const saved = localStorage.getItem("timerState");
-    if (saved) {
-      const timerState = JSON.parse(saved);
-      const lastUpdated = timerState.lastUpdated;
-      const now = Date.now();
-      const elapsedSeconds = Math.floor((now - lastUpdated) / 1000);
+    const restoreTimer = window.setTimeout(() => {
+      const saved = localStorage.getItem("timerState");
+      if (saved) {
+        const timerState = JSON.parse(saved);
+        const lastUpdated = timerState.lastUpdated;
+        const now = Date.now();
+        const elapsedSeconds = Math.floor((now - lastUpdated) / 1000);
 
-      setSessionType(timerState.sessionType);
+        setSessionType(timerState.sessionType);
 
-      // If timer was running, subtract elapsed time
-      if (timerState.isRunning) {
-        const newSeconds = Math.max(0, timerState.timerSeconds - elapsedSeconds);
-        setTimerSeconds(newSeconds);
-        setIsRunning(newSeconds > 0); // Stop if timer would have gone to 0
-      } else {
-        setTimerSeconds(timerState.timerSeconds);
-        setIsRunning(false);
+        // If timer was running before reload, account for elapsed time but reopen paused.
+        if (timerState.isRunning) {
+          const newSeconds = Math.max(0, timerState.timerSeconds - elapsedSeconds);
+          setTimerSeconds(newSeconds);
+          setIsRunning(false);
+        } else {
+          setTimerSeconds(timerState.timerSeconds);
+          setIsRunning(false);
+        }
       }
-    }
-    setInitialized(true);
+      setInitialized(true);
+    }, 0);
+
+    return () => window.clearTimeout(restoreTimer);
   }, []);
 
   // Save timer state to localStorage whenever it changes

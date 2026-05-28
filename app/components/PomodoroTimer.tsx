@@ -8,8 +8,15 @@ interface PomodoroTimerProps {
   preferences?: UserPreferences | null;
 }
 
+type WindowWithWebAudio = Window & {
+  webkitAudioContext?: typeof AudioContext;
+};
+
 function playBeep() {
-  const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+  const AudioContextConstructor = window.AudioContext || (window as WindowWithWebAudio).webkitAudioContext;
+  if (!AudioContextConstructor) return;
+
+  const audioContext = new AudioContextConstructor();
   const beepDuration = 0.2; // Duration of each beep
   const beepInterval = 0.3; // Interval between beeps
   const totalDuration = 3; // Total duration of beeping (3 seconds)
@@ -50,6 +57,7 @@ export default function PomodoroTimer({ preferences }: PomodoroTimerProps) {
   } = useTimer();
   
   const previousSessionTypeRef = useRef<"work" | "break">("work");
+  const userStartedTimerRef = useRef(false);
 
   const totalSeconds = sessionType === "work" ? focusMinutes * 60 : breakMinutes * 60;
   const progress = ((totalSeconds - timerSeconds) / totalSeconds) * 100;
@@ -92,8 +100,11 @@ export default function PomodoroTimer({ preferences }: PomodoroTimerProps) {
           const newType: "work" | "break" = sessionType === "work" ? "break" : "work";
           setSessionType(newType);
           setIsRunning(false);
-          playBeep();
-          alert(`${sessionType} session complete! Time for a ${newType}!`);
+          if (userStartedTimerRef.current) {
+            playBeep();
+            alert(`${sessionType} session complete! Time for a ${newType}!`);
+          }
+          userStartedTimerRef.current = false;
           setTimerSeconds(newType === "work" ? focusMinutes * 60 : breakMinutes * 60);
         } else {
           setTimerSeconds(newSeconds);
@@ -113,19 +124,27 @@ export default function PomodoroTimer({ preferences }: PomodoroTimerProps) {
   }
 
   function resetTimer() {
+    userStartedTimerRef.current = false;
     setIsRunning(false);
     setTimerSeconds(sessionType === "work" ? focusMinutes * 60 : breakMinutes * 60);
   }
 
   function switchSession() {
+    userStartedTimerRef.current = false;
     setIsRunning(false);
     const newType = sessionType === "work" ? "break" : "work";
     setSessionType(newType);
     setTimerSeconds(newType === "work" ? focusMinutes * 60 : breakMinutes * 60);
   }
 
+  function toggleTimer() {
+    if (!isRunning) {
+      userStartedTimerRef.current = true;
+    }
+    setIsRunning(!isRunning);
+  }
+
   const isWork = sessionType === "work";
-  const circleColor = isWork ? "from-blue-400 to-blue-600" : "from-purple-400 to-purple-600";
 
   return (
     <section className="rounded-2xl border border-gray-700 bg-gradient-to-br from-gray-900 to-gray-950 p-8 space-y-8 shadow-2xl">
@@ -196,7 +215,7 @@ export default function PomodoroTimer({ preferences }: PomodoroTimerProps) {
         {/* Buttons */}
         <div className="grid grid-cols-3 gap-3 pt-4">
           <button
-            onClick={() => setIsRunning(!isRunning)}
+            onClick={toggleTimer}
             className={`rounded-lg px-4 py-3 font-semibold transition transform hover:scale-105 active:scale-95 ${
               isRunning
                 ? "bg-red-500 hover:bg-red-600 text-white shadow-lg shadow-red-500/50"

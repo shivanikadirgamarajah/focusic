@@ -11,7 +11,10 @@ import { Track } from "@/app/types";
 export default function Home() {
   const { tracks, currentTrack, setTracks, setCurrentTrack, setIsPlaying, playNext } = useMusic();
   const [isLoadingRecommendations, setIsLoadingRecommendations] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [hasPerformedSearch, setHasPerformedSearch] = useState(false);
+  const [nextPageToken, setNextPageToken] = useState<string | null>(null);
+  const [lastSearchQuery, setLastSearchQuery] = useState<string | null>(null);
   const [userPreferences, setUserPreferences] = useState<any>(null);
 
   const getTimestamp = () => {
@@ -98,7 +101,9 @@ export default function Home() {
       const res = await fetch(
         `/api/youtube/search?q=${encodeURIComponent(searchQuery)}`
       );
-      const { videos } = await res.json();
+      const { videos, nextPageToken } = await res.json();
+      setLastSearchQuery(searchQuery);
+      setNextPageToken(nextPageToken || null);
 
       if (!videos || videos.length === 0) return;
 
@@ -153,7 +158,9 @@ export default function Home() {
       const ytRes = await fetch(
         `/api/youtube/search?q=${encodeURIComponent(query + " ambient focus music")}`
       );
-      const { videos } = await ytRes.json();
+      const { videos, nextPageToken } = await ytRes.json();
+      setLastSearchQuery(`${query} ambient focus music`);
+      setNextPageToken(nextPageToken || null);
 
       if (!Array.isArray(videos) || videos.length === 0) {
         await loadDefaultRecommendations();
@@ -235,8 +242,86 @@ export default function Home() {
     }
   }
 
-  function handleSearch(classifiedTracks: Track[]) {
+  async function handleLoadMore() {
+    if (!lastSearchQuery || !nextPageToken || isLoadingMore) return;
+
+    setIsLoadingMore(true);
+
+    try {
+      const params = new URLSearchParams({
+        q: lastSearchQuery,
+        pageToken: nextPageToken,
+      });
+      const ytRes = await fetch(`/api/youtube/search?${params.toString()}`);
+      const { videos, nextPageToken: newNextPageToken } = await ytRes.json();
+      setNextPageToken(newNextPageToken || null);
+
+      if (!Array.isArray(videos) || videos.length === 0) {
+        return;
+      }
+
+      const timestamp = getTimestamp();
+      const durationMap: Record<string, string> = {};
+      videos.forEach((video: any) => {
+        if (video.duration) {
+          durationMap[video.videoId] = video.duration;
+        }
+      });
+
+      let moreTracks: Track[] = videos.map((video: any, index: number) => ({
+        ...video,
+        focusScore: Math.max(7, 8 - index * 0.2),
+        genre: "ambient",
+        reason: "From additional search results",
+        bestFor: "focus",
+        duration: video.duration || "0:00",
+        timestamp,
+      }));
+
+      try {
+        const aiRes = await fetch("/api/ai/classify", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ mood: lastSearchQuery, tracks: videos }),
+        });
+
+        if (aiRes.ok) {
+          const aiData = await aiRes.json();
+          if (aiData.result) {
+            const classifiedTracks = JSON.parse(aiData.result);
+            moreTracks = classifiedTracks.map((track: Track) => ({
+              ...track,
+              timestamp,
+              duration: durationMap[track.videoId] || track.duration,
+            }));
+          }
+        }
+      } catch (classifyError) {
+        console.warn("Classify API error, using fallback:", classifyError);
+      }
+
+      const seenVideoIds = new Set(tracks.map((track) => track.videoId));
+      const uniqueTracks = moreTracks.filter((track) => {
+        if (seenVideoIds.has(track.videoId)) {
+          return false;
+        }
+
+        seenVideoIds.add(track.videoId);
+        return true;
+      });
+
+      setTracks([...tracks, ...uniqueTracks]);
+    } catch (error) {
+      console.error("Error loading more tracks:", error);
+    } finally {
+      setIsLoadingMore(false);
+    }
+  }
+
+  function handleSearch(classifiedTracks: Track[], metadata?: { query: string; nextPageToken: string | null }) {
     setHasPerformedSearch(true);
+    setLastSearchQuery(metadata?.query || null);
+    setNextPageToken(metadata?.nextPageToken || null);
     setTracks(classifiedTracks);
     if (classifiedTracks.length > 0) {
       // Only set currentTrack if not already set to first result
@@ -281,6 +366,21 @@ export default function Home() {
         currentTrack={currentTrack}
         onSelectTrack={handleSelectTrack}
       />
+
+      {nextPageToken && tracks.length > 0 && (
+        <section className="w-full bg-black px-8 pb-12">
+          <div className="mx-auto flex max-w-3xl justify-center">
+            <button
+              type="button"
+              onClick={handleLoadMore}
+              disabled={isLoadingMore}
+              className="rounded-lg bg-white px-6 py-3 font-semibold text-black transition hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {isLoadingMore ? "Loading more..." : "Load more songs"}
+            </button>
+          </div>
+        </section>
+      )}
     </main>
   );
 }

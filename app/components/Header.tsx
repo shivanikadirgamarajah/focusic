@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
+import type { MouseEvent } from "react";
 
 export default function Header() {
   const pathname = usePathname();
@@ -27,6 +28,14 @@ export default function Header() {
     setMobileMenuOpen(false);
   };
 
+  const handleHomeClick = (event: MouseEvent<HTMLAnchorElement>) => {
+    setMobileMenuOpen(false);
+    if (pathname === "/") {
+      event.preventDefault();
+      window.location.reload();
+    }
+  };
+
   return (
     <header className="border-b border-gray-800 bg-gradient-to-r from-gray-950 to-black">
       <div className="mx-auto max-w-6xl px-2 sm:px-4 md:px-6 py-3 sm:py-4 flex items-center justify-between">
@@ -42,7 +51,7 @@ export default function Header() {
 
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center gap-8 text-sm sm:text-base">
-          <Link href="/" className={getLinkClass("/")} >
+          <Link href="/" className={getLinkClass("/")} onClick={handleHomeClick}>
             Home
           </Link>
           <Link href="/explore" className={getLinkClass("/explore")} >
@@ -100,7 +109,7 @@ export default function Header() {
             <Link
               href="/"
               className={`block px-3 py-2 rounded-lg text-sm font-semibold transition ${getLinkClass("/")}`}
-              onClick={handleLinkClick}
+              onClick={handleHomeClick}
             >
               Home
             </Link>

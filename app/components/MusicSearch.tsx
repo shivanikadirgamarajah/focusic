@@ -5,7 +5,7 @@ import TypedText from "./TypedText";
 import { Track } from "@/app/types";
 
 interface MusicSearchProps {
-  onSearch: (tracks: Track[]) => void;
+  onSearch: (tracks: Track[], metadata?: { query: string; nextPageToken: string | null }) => void;
   loading?: boolean;
 }
 
@@ -29,7 +29,7 @@ export default function MusicSearch({ onSearch, loading = false }: MusicSearchPr
       const ytRes = await fetch(
         `/api/youtube/search?q=${encodeURIComponent(mood + " ambient focus music")}`
       );
-      const { videos } = await ytRes.json();
+      const { videos, nextPageToken } = await ytRes.json();
 
       if (!Array.isArray(videos) || videos.length === 0) {
         throw new Error("No tracks found");
@@ -52,8 +52,21 @@ export default function MusicSearch({ onSearch, loading = false }: MusicSearchPr
       
       const classifiedTracks = JSON.parse(aiData.result);
       console.log("Classified tracks:", classifiedTracks);
+      const durationMap: Record<string, string> = {};
+      videos.forEach((video: Track) => {
+        if (video.duration) {
+          durationMap[video.videoId] = video.duration;
+        }
+      });
+      const tracksWithDurations = classifiedTracks.map((track: Track) => ({
+        ...track,
+        duration: durationMap[track.videoId] || track.duration,
+      }));
       
-      onSearch(classifiedTracks);
+      onSearch(tracksWithDurations, {
+        query: `${mood} ambient focus music`,
+        nextPageToken: nextPageToken || null,
+      });
     } catch (error) {
       console.error(error);
       alert("Something went wrong getting recommendations.");

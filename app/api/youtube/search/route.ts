@@ -31,6 +31,28 @@ type YoutubeVideosApiResponse = {
   items?: YoutubeVideoDetailsItem[];
 };
 
+function decodeHtmlEntities(value: string) {
+  const namedEntities: Record<string, string> = {
+    amp: "&",
+    apos: "'",
+    gt: ">",
+    lt: "<",
+    quot: "\"",
+    "#39": "'",
+  };
+
+  return value.replace(/&(#x[\da-f]+|#\d+|[a-z]+);/gi, (entity, code: string) => {
+    if (code[0] === "#") {
+      const isHex = code[1]?.toLowerCase() === "x";
+      const parsed = Number.parseInt(code.slice(isHex ? 2 : 1), isHex ? 16 : 10);
+
+      return Number.isNaN(parsed) ? entity : String.fromCodePoint(parsed);
+    }
+
+    return namedEntities[code.toLowerCase()] ?? entity;
+  });
+}
+
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const q = searchParams.get("q") || "ambient focus music";
@@ -140,8 +162,8 @@ export async function GET(req: Request) {
 
     const videos = data.items.map((item) => ({
       videoId: item.id.videoId,
-      title: item.snippet.title,
-      channel: item.snippet.channelTitle,
+      title: decodeHtmlEntities(item.snippet.title),
+      channel: decodeHtmlEntities(item.snippet.channelTitle),
       thumbnail: item.snippet.thumbnails.medium?.url,
       duration: durationMap[item.id.videoId] || "0:00",
     }));

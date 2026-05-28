@@ -265,6 +265,12 @@ export default function Home() {
 
         <MusicSearch onSearch={handleSearch} loading={isLoadingRecommendations} />
 
+        {hasPerformedSearch && (
+          <p className="-mt-5 text-xs text-gray-500">
+            Looking for a specific song? Try pasting the link of the youtube video
+          </p>
+        )}
+
         {hasPerformedSearch && currentTrack && (
           <TrackPlayer track={currentTrack} onNext={playNext} />
         )}

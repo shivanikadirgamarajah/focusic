@@ -12,9 +12,11 @@ interface TrackPlayerProps {
 export default function TrackPlayer({ track, onNext }: TrackPlayerProps) {
   const [showInsights, setShowInsights] = useState(false);
   const { setIsPlaying, setCurrentTrack, isPlaying, currentTrack } = useMusic();
+  const isCurrentTrack = currentTrack?.videoId === track.videoId;
+  const shouldPlayPreview = isCurrentTrack && isPlaying;
 
   function handlePlayPause() {
-    if (currentTrack?.videoId === track.videoId) {
+    if (isCurrentTrack) {
       setIsPlaying(!isPlaying);
     } else {
       setCurrentTrack(track);
@@ -33,7 +35,7 @@ export default function TrackPlayer({ track, onNext }: TrackPlayerProps) {
         <iframe
           width="100%"
           height="100%"
-          src={`https://www.youtube.com/embed/${track.videoId}?autoplay=0`}
+          src={`https://www.youtube.com/embed/${track.videoId}?autoplay=${shouldPlayPreview ? "1" : "0"}&mute=1&controls=0&disablekb=1&fs=0&iv_load_policy=3&modestbranding=1&playsinline=1&rel=0`}
           title={track.title}
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
           allowFullScreen
@@ -47,7 +49,7 @@ export default function TrackPlayer({ track, onNext }: TrackPlayerProps) {
           onClick={handlePlayPause}
           className="rounded-lg bg-green-600 px-4 py-2 font-semibold text-white hover:bg-green-700 transition"
         >
-          {currentTrack?.videoId === track.videoId && isPlaying ? "Pause" : "Play"}
+          {shouldPlayPreview ? "Pause" : "Play"}
         </button>
         <button
           onClick={() => setShowInsights(!showInsights)}

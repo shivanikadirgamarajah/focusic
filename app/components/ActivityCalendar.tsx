@@ -11,11 +11,19 @@ export default function ActivityCalendar() {
   const [currentDate] = useState(new Date());
 
   useEffect(() => {
-    // Load activity data from localStorage
-    const saved = localStorage.getItem("focusActivity");
-    if (saved) {
-      setActivityData(JSON.parse(saved));
-    }
+    const loadActivity = () => {
+      const saved = localStorage.getItem("focusActivity");
+      if (saved) {
+        setActivityData(JSON.parse(saved));
+      }
+    };
+
+    loadActivity();
+    window.addEventListener("focusActivityUpdated", loadActivity);
+
+    return () => {
+      window.removeEventListener("focusActivityUpdated", loadActivity);
+    };
   }, []);
 
   // Get the last 52 weeks of data
@@ -40,9 +48,9 @@ export default function ActivityCalendar() {
 
   function getIntensityColor(count: number): string {
     if (count === 0) return "bg-gray-800";
-    if (count === 1) return "bg-green-900";
-    if (count === 2) return "bg-green-700";
-    if (count === 3) return "bg-green-500";
+    if (count <= 15) return "bg-green-900";
+    if (count <= 30) return "bg-green-700";
+    if (count <= 60) return "bg-green-500";
     return "bg-green-400";
   }
 
@@ -54,7 +62,7 @@ export default function ActivityCalendar() {
     <div className="space-y-6">
       <div>
         <h3 className="text-xl font-bold text-white mb-4">Focus Activity</h3>
-        <p className="text-gray-400 mb-4">Your focus session contributions over the last year</p>
+        <p className="text-gray-400 mb-4">Your focus minutes over the last year</p>
       </div>
 
       <div className="overflow-x-auto pb-4">

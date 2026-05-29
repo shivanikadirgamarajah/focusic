@@ -322,25 +322,7 @@ export default function ProfilePage() {
         </section>
 
         <section className="grid gap-6 lg:grid-cols-[0.9fr_1.4fr]">
-          <div className="rounded-lg border border-gray-800 bg-gray-950/80 p-6">
-            <h2 className="text-xl font-bold">Preferences</h2>
-            <div className="mt-6 space-y-5">
-              <div className="flex items-center justify-between border-b border-gray-800 pb-4">
-                <span className="text-gray-400">Focus session</span>
-                <span className="font-semibold text-white">{preferences.focusLength} min</span>
-              </div>
-              <div className="flex items-center justify-between border-b border-gray-800 pb-4">
-                <span className="text-gray-400">Break session</span>
-                <span className="font-semibold text-white">{preferences.breakLength} min</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-gray-400">Profile status</span>
-                <span className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 text-sm font-semibold text-emerald-200">
-                  Active
-                </span>
-              </div>
-            </div>
-          </div>
+          
 
           <div className="rounded-lg border border-gray-800 bg-gray-950/80 p-6">
             <ActivityCalendar />

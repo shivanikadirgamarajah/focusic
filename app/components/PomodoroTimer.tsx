@@ -80,11 +80,12 @@ export default function PomodoroTimer({ preferences }: PomodoroTimerProps) {
       };
       localStorage.setItem("userPreferences", JSON.stringify(updatedPreferences));
 
-      // Track focus session completion in activity calendar
+      // Track minutes of focus in activity calendar
       const today = new Date().toISOString().split("T")[0];
-      const activityData = JSON.parse(localStorage.getItem("focusActivity") || "{}");
-      activityData[today] = (activityData[today] || 0) + 1;
+      const activityData = JSON.parse(localStorage.getItem("focusActivity") || "{}") as Record<string, number>;
+      activityData[today] = (activityData[today] || 0) + focusMinutes;
       localStorage.setItem("focusActivity", JSON.stringify(activityData));
+      window.dispatchEvent(new Event("focusActivityUpdated"));
     }
     previousSessionTypeRef.current = sessionType;
   }, [sessionType, preferences, focusMinutes]);

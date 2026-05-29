@@ -10,6 +10,7 @@ interface TrackPlayerProps {
 }
 
 export default function TrackPlayer({ track, onNext }: TrackPlayerProps) {
+
   const [showInsights, setShowInsights] = useState(false);
   const [isLiked, setIsLiked] = useState(false);
   const { setIsPlaying, setCurrentTrack, isPlaying, currentTrack } = useMusic();
@@ -148,4 +149,5 @@ export default function TrackPlayer({ track, onNext }: TrackPlayerProps) {
       )}
     </section>
   );
+  
 }

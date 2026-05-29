@@ -507,9 +507,17 @@ export default function PersistentMusicBar() {
                   : "bg-gray-700 hover:bg-gray-600"
               }`}
               title={isLiked ? "Unlike" : "Like"}
+              aria-label={isLiked ? "Unlike" : "Like"}
             >
-              <span className="hidden sm:inline">{isLiked ? "❤️ Liked" : "🤍 Like"}</span>
-              <span className="sm:hidden">{isLiked ? "❤️" : "🤍"}</span>
+              <svg
+                className={`h-5 w-5 transition ${isLiked ? "fill-white text-white" : "text-white"}`}
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth="2"
+                fill={isLiked ? "currentColor" : "none"}
+              >
+                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+              </svg>
             </button>
             <button
               onClick={() => {
@@ -519,7 +527,7 @@ export default function PersistentMusicBar() {
               className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg font-semibold transition"
             >
               
-              <span className="hidden sm:inline">{isPlaying ? "⏸ Pause" : "▶ Play"}</span>
+              <span className="hidden sm:inline">{isPlaying ? "⏸" : "▶"}</span>
               <span className="sm:hidden">{isPlaying ? "⏸" : "▶"}</span>
             </button>
             {tracks.length > 1 && (
@@ -528,7 +536,7 @@ export default function PersistentMusicBar() {
                 className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg font-semibold transition"
               >
                 
-                <span className="hidden sm:inline">Skip →</span>
+                <span className="hidden sm:inline">Skip</span>
                 <span className="sm:hidden">→</span>
               </button>
             )}

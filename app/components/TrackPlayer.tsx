@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Track } from "@/app/types";
 import { useMusic } from "@/app/context/MusicContext";
 
@@ -11,9 +11,20 @@ interface TrackPlayerProps {
 
 export default function TrackPlayer({ track, onNext }: TrackPlayerProps) {
   const [showInsights, setShowInsights] = useState(false);
+  const [isLiked, setIsLiked] = useState(false);
   const { setIsPlaying, setCurrentTrack, isPlaying, currentTrack } = useMusic();
   const isCurrentTrack = currentTrack?.videoId === track.videoId;
   const shouldPlayPreview = isCurrentTrack && isPlaying;
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("likedSongs");
+      const likedSongs = saved ? (JSON.parse(saved) as Track[]) : [];
+      setIsLiked(likedSongs.some((likedTrack) => likedTrack.videoId === track.videoId));
+    } catch (error) {
+      console.error("Error loading liked songs:", error);
+    }
+  }, [track.videoId]);
 
   function handlePlayPause() {
     if (isCurrentTrack) {
@@ -21,6 +32,28 @@ export default function TrackPlayer({ track, onNext }: TrackPlayerProps) {
     } else {
       setCurrentTrack(track);
       setIsPlaying(true);
+    }
+  }
+
+  function handleToggleLike() {
+    try {
+      const saved = localStorage.getItem("likedSongs");
+      const likedSongs = saved ? (JSON.parse(saved) as Track[]) : [];
+      const existingIndex = likedSongs.findIndex((likedTrack) => likedTrack.videoId === track.videoId);
+      const nextIsLiked = existingIndex === -1;
+
+      if (existingIndex > -1) {
+        likedSongs.splice(existingIndex, 1);
+      } else {
+        likedSongs.push(track);
+      }
+
+      localStorage.setItem("likedSongs", JSON.stringify(likedSongs));
+      setIsLiked(nextIsLiked);
+      window.dispatchEvent(new CustomEvent("likedSongsChanged"));
+      window.dispatchEvent(new Event("focusic:likedSongsUpdated"));
+    } catch (error) {
+      console.error("Error toggling like:", error);
     }
   }
 
@@ -49,19 +82,43 @@ export default function TrackPlayer({ track, onNext }: TrackPlayerProps) {
           onClick={handlePlayPause}
           className="rounded-lg bg-green-600 px-4 py-2 font-semibold text-white hover:bg-green-700 transition"
         >
-          {shouldPlayPreview ? "Pause" : "Play"}
+          {shouldPlayPreview ? "⏸" : "▶"}
         </button>
         <button
           onClick={() => setShowInsights(!showInsights)}
-          className="rounded-lg bg-purple-600 px-4 py-2 font-semibold text-white hover:bg-purple-700 transition"
+          className={`rounded-lg px-4 py-2 font-serif text-lg font-bold italic transition ${
+            showInsights
+              ? "bg-purple-600 text-white hover:bg-purple-700"
+              : "bg-gray-700 text-purple-200 hover:bg-gray-600"
+          }`}
+          title="Insights"
+          aria-label="Insights"
         >
-           Insights
+          i
         </button>
         <button
           onClick={onNext}
           className="rounded-lg bg-blue-600 px-4 py-2 font-semibold text-white hover:bg-blue-700 transition"
         >
           Shuffle
+        </button>
+        <button
+          onClick={handleToggleLike}
+          className={`rounded-lg px-4 py-2 font-semibold transition ${
+            isLiked ? "bg-red-600 hover:bg-red-700" : "bg-gray-700 hover:bg-gray-600"
+          }`}
+          title={isLiked ? "Unlike" : "Like"}
+          aria-label={isLiked ? "Unlike" : "Like"}
+        >
+          <svg
+            className={`h-5 w-5 transition ${isLiked ? "fill-white text-white" : "text-white"}`}
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth="2"
+            fill={isLiked ? "currentColor" : "none"}
+          >
+            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+          </svg>
         </button>
       </div>
 

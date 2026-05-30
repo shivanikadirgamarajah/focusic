@@ -12,6 +12,10 @@ type WindowWithWebAudio = Window & {
   webkitAudioContext?: typeof AudioContext;
 };
 
+function formatLocalDate(date: Date) {
+  return date.toLocaleDateString("en-CA");
+}
+
 function playBeep() {
   const AudioContextConstructor = window.AudioContext || (window as WindowWithWebAudio).webkitAudioContext;
   if (!AudioContextConstructor) return;
@@ -81,7 +85,7 @@ export default function PomodoroTimer({ preferences }: PomodoroTimerProps) {
       localStorage.setItem("userPreferences", JSON.stringify(updatedPreferences));
 
       // Track minutes of focus in activity calendar
-      const today = new Date().toISOString().split("T")[0];
+      const today = formatLocalDate(new Date());
       const activityData = JSON.parse(localStorage.getItem("focusActivity") || "{}") as Record<string, number>;
       activityData[today] = (activityData[today] || 0) + focusMinutes;
       localStorage.setItem("focusActivity", JSON.stringify(activityData));

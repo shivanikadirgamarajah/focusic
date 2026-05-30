@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-
+function formatLocalDate(date: Date) {
+  return date.toLocaleDateString("en-CA");
+}
 interface ActivityData {
   [date: string]: number; // date -> number of focus sessions completed
 }
@@ -37,7 +39,7 @@ export default function ActivityCalendar() {
       for (let day = 0; day < 7; day++) {
         const date = new Date(startDate);
         date.setDate(date.getDate() + week * 7 + day);
-        const dateStr = date.toISOString().split("T")[0];
+        const dateStr = formatLocalDate(date);
         const count = activityData[dateStr] || 0;
         weekDays.push({ date: dateStr, count });
       }

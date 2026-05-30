@@ -47,7 +47,7 @@ export default function Home() {
       const focusActivity = JSON.parse(localStorage.getItem("focusActivity") || "{}");
 
       if (searchHistory.length === 0 && listenHistory.length === 0 && likedSongs.length === 0) {
-        // No history, load default recommendations
+        // No history, load default recoammendations
         await loadDefaultRecommendations();
         return;
       }

@@ -261,8 +261,7 @@ export default function ProfilePage() {
   }
 
   const totalFocusTime = preferences.totalFocusTime ?? 0;
-  const totalFocusHours = Math.floor(totalFocusTime / 60);
-  const totalFocusMinutes = totalFocusTime % 60;
+  
 
   return (
     <main className="min-h-screen bg-black px-4 py-10 text-white sm:px-8">
@@ -295,30 +294,16 @@ export default function ProfilePage() {
         </section>
 
         <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <div className="rounded-lg border border-gray-800 bg-gray-950/80 p-5">
-            <p className="text-sm font-semibold text-gray-400">Name</p>
-            <p className="mt-3 truncate text-3xl font-bold">{preferences.name}</p>
-          </div>
+          
 
-          <div className="rounded-lg border border-gray-800 bg-gray-950/80 p-5">
-            <p className="text-sm font-semibold text-gray-400">Work Type</p>
-            <p className="mt-3 text-3xl font-bold">{preferences.workType}</p>
-          </div>
+          
 
-          <div className="rounded-lg border border-cyan-900/80 bg-cyan-950/20 p-5">
-            <p className="text-sm font-semibold text-cyan-200">Total Focus</p>
-            <p className="mt-3 text-3xl font-bold text-cyan-100">
-              {totalFocusHours}h {totalFocusMinutes}m
-            </p>
-          </div>
-
-          <div className="rounded-lg border border-emerald-900/80 bg-emerald-950/20 p-5">
-            <p className="text-sm font-semibold text-emerald-200">Timer Rhythm</p>
-            <p className="mt-3 text-3xl font-bold text-emerald-100">
-              {preferences.focusLength} / {preferences.breakLength}
-            </p>
-            <p className="mt-1 text-sm text-gray-400">focus / break minutes</p>
-          </div>
+          <Link
+            href="/focus-insights"
+            className="flex w-full min-h-28 items-center justify-center rounded-lg border border-emerald-900/80 bg-emerald-950/20 p-5 text-center text-2xl font-bold text-emerald-100 transition hover:border-emerald-400 hover:bg-emerald-950/35 focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:ring-offset-2 focus:ring-offset-black"
+          >
+            Focus Insights
+          </Link>
         </section>
 
         <section className="grid gap-6 lg:grid-cols-[0.9fr_1.4fr]">

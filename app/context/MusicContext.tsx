@@ -2,6 +2,12 @@
 
 import { createContext, useContext, useRef, useState, ReactNode, useEffect } from "react";
 import { filterVisibleFocusTracks, isVisibleFocusTrack, Track } from "@/app/types";
+import {
+  addFocusActivityMinutes,
+  focusActivityUpdatedEvent,
+  formatLocalDateKey,
+  readFocusActivity,
+} from "@/app/utils/focusActivity";
 
 interface MusicContextType {
   currentTrack: Track | null;
@@ -16,18 +22,13 @@ interface MusicContextType {
 
 const MusicContext = createContext<MusicContextType | undefined>(undefined);
 
-function formatLocalDate(date: Date) {
-  return date.toLocaleDateString("en-CA");
-}
-
 export function MusicProvider({ children }: { children: ReactNode }) {
   const [currentTrack, setCurrentTrackState] = useState<Track | null>(null);
   const [tracks, setTracksState] = useState<Track[]>([]);
   const [isPlaying, setIsPlaying] = useState(false);
   const [musicListeningSeconds, setMusicListeningSeconds] = useState(0);
   const tracksRef = useRef<Track[]>([]);
-  const lastSaveTimeRef = useRef(Date.now());
-  const hasLoggedTodayRef = useRef(false);
+  const loggedActivityDateRef = useRef<string | null>(null);
 
   function setTracks(nextTracks: Track[]) {
     const visibleTracks = filterVisibleFocusTracks(nextTracks);
@@ -71,10 +72,10 @@ export function MusicProvider({ children }: { children: ReactNode }) {
     if (!isPlaying) return;
 
     // Log initial activity for the day when user starts playing
-    if (!hasLoggedTodayRef.current) {
+    const today = formatLocalDateKey(new Date());
+    if (loggedActivityDateRef.current !== today) {
       try {
-        const today = formatLocalDate(new Date());
-        const activityData = JSON.parse(localStorage.getItem("focusActivity") || "{}") as Record<string, number>;
+        const activityData = readFocusActivity();
         
         // Only initialize if there's no entry for today yet
         if (!activityData[today]) {
@@ -82,10 +83,10 @@ export function MusicProvider({ children }: { children: ReactNode }) {
           localStorage.setItem("focusActivity", JSON.stringify(activityData));
           // Dispatch event asynchronously to avoid render conflicts
           setTimeout(() => {
-            window.dispatchEvent(new Event("focusActivityUpdated"));
+            window.dispatchEvent(new Event(focusActivityUpdatedEvent));
           }, 0);
         }
-        hasLoggedTodayRef.current = true;
+        loggedActivityDateRef.current = today;
       } catch (error) {
         console.error("Error initializing daily activity:", error);
       }
@@ -113,14 +114,7 @@ export function MusicProvider({ children }: { children: ReactNode }) {
 
               // Update activity calendar every hour (60 minutes)
               if (newSeconds % 3600 === 0) {
-                const today = formatLocalDate(new Date());
-                const activityData = JSON.parse(localStorage.getItem("focusActivity") || "{}") as Record<string, number>;
-                activityData[today] = (activityData[today] || 0) + 60; // Add 60 minutes (1 hour)
-                localStorage.setItem("focusActivity", JSON.stringify(activityData));
-                // Dispatch event asynchronously to avoid render conflicts
-                setTimeout(() => {
-                  window.dispatchEvent(new Event("focusActivityUpdated"));
-                }, 0);
+                addFocusActivityMinutes(60);
               }
             }
           } catch (error) {
@@ -134,18 +128,6 @@ export function MusicProvider({ children }: { children: ReactNode }) {
 
     return () => clearInterval(interval);
   }, [isPlaying]);
-
-  // Reset daily log flag at midnight
-  useEffect(() => {
-    const checkMidnight = setInterval(() => {
-      const now = new Date();
-      if (now.getHours() === 0 && now.getMinutes() === 0) {
-        hasLoggedTodayRef.current = false;
-      }
-    }, 60000); // Check every minute
-
-    return () => clearInterval(checkMidnight);
-  }, []);
 
   return (
     <MusicContext.Provider value={{ currentTrack, tracks, isPlaying, setCurrentTrack, setTracks, setIsPlaying, playNext, musicListeningSeconds }}>

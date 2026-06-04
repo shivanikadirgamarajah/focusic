@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import { UserPreferences } from "./Onboarding";
 import { useTimer } from "@/app/context/TimerContext";
+import { addFocusActivityMinutes } from "@/app/utils/focusActivity";
 
 interface PomodoroTimerProps {
   preferences?: UserPreferences | null;
@@ -11,10 +12,6 @@ interface PomodoroTimerProps {
 type WindowWithWebAudio = Window & {
   webkitAudioContext?: typeof AudioContext;
 };
-
-function formatLocalDate(date: Date) {
-  return date.toLocaleDateString("en-CA");
-}
 
 function playBeep() {
   const AudioContextConstructor = window.AudioContext || (window as WindowWithWebAudio).webkitAudioContext;
@@ -84,12 +81,7 @@ export default function PomodoroTimer({ preferences }: PomodoroTimerProps) {
       };
       localStorage.setItem("userPreferences", JSON.stringify(updatedPreferences));
 
-      // Track minutes of focus in activity calendar
-      const today = formatLocalDate(new Date());
-      const activityData = JSON.parse(localStorage.getItem("focusActivity") || "{}") as Record<string, number>;
-      activityData[today] = (activityData[today] || 0) + focusMinutes;
-      localStorage.setItem("focusActivity", JSON.stringify(activityData));
-      window.dispatchEvent(new Event("focusActivityUpdated"));
+      addFocusActivityMinutes(focusMinutes);
     }
     previousSessionTypeRef.current = sessionType;
   }, [sessionType, preferences, focusMinutes]);

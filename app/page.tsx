@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import MusicSearch from "@/app/components/MusicSearch";
 import TrackPlayer from "@/app/components/TrackPlayer";
 import TrackList from "@/app/components/TrackList";
@@ -16,6 +16,9 @@ export default function Home() {
   const [nextPageToken, setNextPageToken] = useState<string | null>(null);
   const [lastSearchQuery, setLastSearchQuery] = useState<string | null>(null);
   const [userPreferences, setUserPreferences] = useState<any>(null);
+  const loadMoreSentinelRef = useRef<HTMLElement>(null);
+  const loadMoreInFlightRef = useRef(false);
+  const loadMoreHandlerRef = useRef<() => Promise<void>>(async () => {});
 
   const getTimestamp = () => {
     return Date.now();
@@ -262,8 +265,9 @@ export default function Home() {
   }
 
   async function handleLoadMore() {
-    if (!lastSearchQuery || !nextPageToken || isLoadingMore) return;
+    if (!lastSearchQuery || !nextPageToken || loadMoreInFlightRef.current) return;
 
+    loadMoreInFlightRef.current = true;
     setIsLoadingMore(true);
 
     try {
@@ -333,9 +337,26 @@ export default function Home() {
     } catch (error) {
       console.error("Error loading more tracks:", error);
     } finally {
+      loadMoreInFlightRef.current = false;
       setIsLoadingMore(false);
     }
   }
+
+  loadMoreHandlerRef.current = handleLoadMore;
+
+  useEffect(() => {
+    const sentinel = loadMoreSentinelRef.current;
+    if (!sentinel || !nextPageToken) return;
+
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry?.isIntersecting && !isLoadingMore) {
+        void loadMoreHandlerRef.current();
+      }
+    });
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [nextPageToken, isLoadingMore, tracks.length]);
 
   function handleSearch(classifiedTracks: Track[], metadata?: { query: string; nextPageToken: string | null }) {
     setHasPerformedSearch(true);
@@ -387,16 +408,18 @@ export default function Home() {
       />
 
       {nextPageToken && tracks.length > 0 && (
-        <section className="w-full bg-black px-8 pb-12">
+        <section ref={loadMoreSentinelRef} className="w-full bg-black px-8 pb-12">
           <div className="mx-auto flex max-w-3xl justify-center">
-            <button
-              type="button"
-              onClick={handleLoadMore}
-              disabled={isLoadingMore}
-              className="rounded-lg bg-white px-6 py-3 font-semibold text-black transition hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {isLoadingMore ? "Loading more..." : "Load more songs"}
-            </button>
+            {isLoadingMore && (
+              <button
+                type="button"
+                disabled
+                aria-live="polite"
+                className="rounded-lg bg-white px-6 py-3 font-semibold text-black opacity-70"
+              >
+                Loading more...
+              </button>
+            )}
           </div>
         </section>
       )}

@@ -25,25 +25,30 @@ User mood/task: ${mood}
 Classify these tracks:
 ${JSON.stringify(tracks, null, 2)}
 
-Return ONLY valid JSON. No markdown. PRESERVE the videoId and thumbnail fields!
+Return a JSON object with a "tracks" array. Do not include markdown or extra text.
+PRESERVE each track's videoId, title, thumbnail, and channel exactly.
+Keep each reason concise (one short sentence) so the response is not unnecessarily long.
 
-Format - include ALL original fields plus new ones:
-[
-  {
-    "videoId": "string",
-    "title": "string",
-    "thumbnail": "string (keep the original thumbnail URL)",
-    "channel": "string",
-    "genre": "ambient | lofi | piano | synthwave | nature | drone | jazz | other",
-    "focusScore": 8,
-    "reason": "Good for focus because...",
-    "bestFor": "coding | studying | reading | deep work | break"
-  }
-]
+Format:
+{
+  "tracks": [
+    {
+      "videoId": "string",
+      "title": "string",
+      "thumbnail": "string",
+      "channel": "string",
+      "genre": "ambient | lofi | piano | synthwave | nature | drone | jazz | other",
+      "focusScore": 8,
+      "reason": "Good for focus because...",
+      "bestFor": "coding | studying | reading | deep work | break"
+    }
+  ]
+}
 `;
 
     const completion = await groq.chat.completions.create({
       model: "openai/gpt-oss-20b",
+      response_format: { type: "json_object" },
       messages: [
         {
           role: "user",
@@ -75,20 +80,34 @@ Format - include ALL original fields plus new ones:
     }
     cleanedText = cleanedText.trim();
 
-    // Validate JSON
+    // Parse and validate the structured response before returning the array
+    // string expected by existing client callers.
     try {
-      JSON.parse(cleanedText);
+      const parsed: unknown = JSON.parse(cleanedText);
+      if (
+        typeof parsed !== "object" ||
+        parsed === null ||
+        !Array.isArray((parsed as { tracks?: unknown }).tracks)
+      ) {
+        throw new Error('AI JSON did not contain a "tracks" array');
+      }
+
+      return NextResponse.json({
+        result: JSON.stringify((parsed as { tracks: unknown[] }).tracks),
+      });
     } catch (parseError) {
-      console.error("JSON parse error:", parseError, "Raw text:", cleanedText);
+      console.error("Invalid JSON from AI:", parseError, {
+        finishReason: completion.choices[0]?.finish_reason,
+        responsePreview: cleanedText.slice(0, 200),
+      });
       return NextResponse.json(
-        { error: "Invalid JSON from AI", details: cleanedText.slice(0, 200) },
+        {
+          error: "Invalid JSON from AI",
+          details: parseError instanceof Error ? parseError.message : "Could not parse AI response",
+        },
         { status: 500 }
       );
     }
-
-    return NextResponse.json({
-      result: cleanedText,
-    });
   } catch (error) {
     console.error("Classify API error:", error);
     

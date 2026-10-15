@@ -30,7 +30,7 @@ Example:
 Analyze the user's taste and create queries that match their focus music preferences.`;
 
     const completion = await groq.chat.completions.create({
-      model: "llama-3.1-8b-instant",
+      model: "openai/gpt-oss-20b",
       messages: [
         {
           role: "user",

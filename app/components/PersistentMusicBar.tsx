@@ -220,12 +220,13 @@ export default function PersistentMusicBar() {
           videoId: 'dQw4w9WgXcQ',
           events: {
             onReady: () => {
-              if (playerRef.current && currentTrack?.videoId && !isNavigatingRef.current) {
+              const selectedTrack = currentTrackRef.current;
+              if (playerRef.current && selectedTrack?.videoId && !isNavigatingRef.current) {
                 try {
                   if (isPlayingRef.current) {
-                    playerRef.current.loadVideoById(currentTrack.videoId);
+                    playerRef.current.loadVideoById(selectedTrack.videoId);
                   } else {
-                    playerRef.current.cueVideoById?.(currentTrack.videoId);
+                    playerRef.current.cueVideoById?.(selectedTrack.videoId);
                   }
                 } catch (e) {
                   console.warn("Load on ready error:", e);
@@ -237,11 +238,6 @@ export default function PersistentMusicBar() {
 
               if (e.data === youtube.PlayerState.PLAYING) {
                 requestPlayback(true);
-                return;
-              }
-
-              if (e.data === youtube.PlayerState.PAUSED) {
-                requestPlayback(false);
                 return;
               }
 
@@ -274,7 +270,7 @@ export default function PersistentMusicBar() {
     };
 
     checkAndInit();
-  }, [currentTrack?.videoId, handlePlayerError, requestPlayback]);
+  }, [handlePlayerError, requestPlayback]);
 
   // Load YouTube script and create player container outside React tree
   useEffect(() => {

@@ -69,10 +69,29 @@ export default function Home() {
         }),
       });
 
-      const { recommendations } = await res.json();
-      
+      const responseText = await res.text();
+      let responseData: { recommendations?: unknown };
+      try {
+        responseData = JSON.parse(responseText) as { recommendations?: unknown };
+      } catch {
+        console.error("Recommendation API returned non-JSON response:", {
+          status: res.status,
+          contentType: res.headers.get("content-type"),
+          body: responseText.slice(0, 300),
+        });
+        throw new Error(`Recommendation API returned invalid JSON (HTTP ${res.status})`);
+      }
+
+      if (!res.ok || typeof responseData.recommendations !== "string" || !responseData.recommendations.trim()) {
+        console.error("Recommendation API returned an invalid response:", {
+          status: res.status,
+          response: responseData,
+        });
+        throw new Error(`Recommendation API failed (HTTP ${res.status})`);
+      }
+
       // Search for music based on first recommendation
-      const firstRecommendation = recommendations.split(",")[0].trim();
+      const firstRecommendation = responseData.recommendations.split(",")[0].trim();
       await performSearch(firstRecommendation, false);
     } catch (error) {
       console.error("Error loading recommendations:", error);

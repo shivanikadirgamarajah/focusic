@@ -314,7 +314,7 @@ export default function PersistentMusicBar() {
         videoId: currentTrack.videoId,
         message: "This track cannot play here. Skipping to the next one.",
       });
-      if (tracks.length > 1) {
+      if (tracksRef.current.length > 1) {
         playNextRef.current();
       } else {
         requestPlayback(false);
@@ -332,7 +332,7 @@ export default function PersistentMusicBar() {
     } catch (e) {
       console.warn("Load error:", e);
     }
-  }, [currentTrack?.videoId, tracks.length, requestPlayback]);
+  }, [currentTrack?.videoId, requestPlayback]);
 
   // Control playback
   useEffect(() => {

@@ -100,6 +100,18 @@ export default function PersistentMusicBar() {
   const tracksRef = useRef(tracks);
   const blockedVideoIdsRef = useRef(new Set<string>());
 
+  const toggleFullscreen = async () => {
+    try {
+      if (document.fullscreenElement) {
+        await document.exitFullscreen();
+      } else {
+        await document.documentElement.requestFullscreen();
+      }
+    } catch (error) {
+      console.error("Fullscreen failed:", error);
+    }
+  };
+
   useEffect(() => {
     document.documentElement.classList.toggle("focusic-expanded", isExpanded);
 
@@ -117,6 +129,17 @@ export default function PersistentMusicBar() {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsExpanded(Boolean(document.fullscreenElement));
+    };
+
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    return () => {
+      document.removeEventListener("fullscreenchange", handleFullscreenChange);
+    };
   }, []);
 
   // Keep ref in sync with playNext
@@ -235,8 +258,8 @@ export default function PersistentMusicBar() {
 
       try {
         playerRef.current = new youtube.Player('youtube-player-container', {
-          height: '0',
-          width: '0',
+          height: '270',
+          width: '480',
           videoId: 'dQw4w9WgXcQ',
           events: {
             onReady: () => {
@@ -517,10 +540,7 @@ export default function PersistentMusicBar() {
           <div className="flex gap-2 flex-shrink-0">
             <button
               type="button"
-              onClick={() => {
-                initializePlayer();
-                setIsExpanded((previous) => !previous);
-              }}
+              onClick={toggleFullscreen}
               className="px-4 py-2 rounded-lg bg-gray-700 text-white transition hover:bg-gray-600"
               title={isExpanded ? "Collapse player" : "Expand player"}
               aria-label={isExpanded ? "Collapse player" : "Expand player"}

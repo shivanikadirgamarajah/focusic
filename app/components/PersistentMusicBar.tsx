@@ -530,10 +530,17 @@ export default function PersistentMusicBar() {
               <button
                 onClick={playNext}
                 className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg font-semibold transition"
+                title="Skip to next track"
+                aria-label="Skip to next track"
               >
-                
-                <span className="hidden sm:inline">Skip</span>
-                <span className="sm:hidden">→</span>
+                <svg
+                  aria-hidden="true"
+                  className="h-5 w-5"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                >
+                  <path d="M5 5.5v13l10-6.5-10-6.5Zm11 0v13h3v-13h-3Z" />
+                </svg>
               </button>
             )}
           </div>

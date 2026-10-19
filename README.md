@@ -1,3 +1,10 @@
+
+Focusic is an AI-powered music and productivity web application designed to help users stay focused while studying, coding, or working. By combining personalized music recommendations with productivity tools, Focusic creates a customized environment that supports concentration and efficient work sessions.
+
+The application uses AI to recommend music based on users' listening preferences and activities, while evaluating tracks for their suitability for focused work. It also integrates YouTube music playback, a customizable Pomodoro timer, and activity tracking to help users manage their time and build consistent productivity habits.
+
+Built with Next.js, React, TypeScript, and Tailwind CSS, Focusic brings music discovery and productivity management together in a single, user-friendly platform.
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started
@@ -29,8 +36,20 @@ To learn more about Next.js, take a look at the following resources:
 
 You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
 
-## Deploy on Vercel
+## Live Demo
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+https://focusic.vercel.app
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Screenshots
+
+### Homepage
+![Focusic Homepage](public/screenshots/homepage.png)
+
+### Explore
+![Focusic Homepage](public/screenshots/explore.png)
+
+### Liked Songs
+![Focusic Homepage](public/screenshots/Liked.png)
+
+### Timer
+![Focusic Homepage](public/screenshots/pomo.png)

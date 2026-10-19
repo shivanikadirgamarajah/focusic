@@ -90,7 +90,7 @@ export default function ThemePage() {
       let errorDetails = "";
       try {
         const errorData = (await searchRes.json()) as YoutubeSearchResponse;
-        errorDetails = errorData.error || errorData.details || JSON.stringify(errorData);
+        errorDetails = errorData.details || errorData.error || JSON.stringify(errorData);
       } catch {
         errorDetails = await searchRes.text();
       }

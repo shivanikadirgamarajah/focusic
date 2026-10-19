@@ -38,7 +38,7 @@ export default function Header() {
 
   return (
     <header className="border-b border-gray-800 bg-gradient-to-r from-gray-950 to-black">
-      <div className="mx-auto max-w-6xl px-2 sm:px-4 md:px-6 py-3 sm:py-4 flex items-center justify-between">
+      <div className="w-full px-4 sm:px-6 md:px-8 py-3 sm:py-4 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2 group" onClick={handleLinkClick}>
           
           <div>

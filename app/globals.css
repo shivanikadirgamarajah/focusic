@@ -25,6 +25,24 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
+html.focusic-expanded #youtube-player-container {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important;
+  height: 100dvh !important;
+  visibility: visible !important;
+  display: block !important;
+  z-index: 90 !important;
+  border: none !important;
+  background: black;
+}
+
+html.focusic-expanded #youtube-player-container iframe {
+  width: 100% !important;
+  height: 100% !important;
+}
+
 @keyframes colorShift-work {
   0% {
     stroke: #60a5fa;

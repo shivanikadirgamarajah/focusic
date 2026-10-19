@@ -84,6 +84,7 @@ export default function PersistentMusicBar() {
   const [elapsedTime, setElapsedTime] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const [duration, setDuration] = useState(0);
+  const [isExpanded, setIsExpanded] = useState(false);
   const isLiked = useSyncExternalStore(
     subscribeToLikedSongs,
     () => isTrackLiked(currentTrack?.videoId),
@@ -98,6 +99,25 @@ export default function PersistentMusicBar() {
   const currentTrackRef = useRef(currentTrack);
   const tracksRef = useRef(tracks);
   const blockedVideoIdsRef = useRef(new Set<string>());
+
+  useEffect(() => {
+    document.documentElement.classList.toggle("focusic-expanded", isExpanded);
+
+    return () => {
+      document.documentElement.classList.remove("focusic-expanded");
+    };
+  }, [isExpanded]);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsExpanded(false);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   // Keep ref in sync with playNext
   useEffect(() => {
@@ -451,7 +471,7 @@ export default function PersistentMusicBar() {
   if (!currentTrack) return null;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-gray-900 border-t border-gray-700 z-50">
+    <div className="fixed bottom-0 left-0 right-0 bg-gray-900 border-t border-gray-700 z-[100]">
       <div
         ref={progressBarRef}
         onClick={handleProgressClick}
@@ -496,6 +516,19 @@ export default function PersistentMusicBar() {
 
           <div className="flex gap-2 flex-shrink-0">
             <button
+              type="button"
+              onClick={() => {
+                initializePlayer();
+                setIsExpanded((previous) => !previous);
+              }}
+              className="px-4 py-2 rounded-lg bg-gray-700 text-white transition hover:bg-gray-600"
+              title={isExpanded ? "Collapse player" : "Expand player"}
+              aria-label={isExpanded ? "Collapse player" : "Expand player"}
+              aria-expanded={isExpanded}
+            >
+              <span aria-hidden="true">{isExpanded ? "⤡" : "⛶"}</span>
+            </button>
+            <button
               onClick={toggleLike}
               className={`px-4 py-2 rounded-lg font-semibold transition ${
                 isLiked
@@ -515,6 +548,7 @@ export default function PersistentMusicBar() {
                 <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
               </svg>
             </button>
+            
             <button
               onClick={() => {
                 initializePlayer();

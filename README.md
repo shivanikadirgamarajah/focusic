@@ -42,14 +42,18 @@ https://focusic.vercel.app
 
 ## Screenshots
 
+
 ### Homepage
-![Focusic Homepage](public/screenshots/homepage.png)
+![Focusic Homepage](public/screenshots/home.png)
+
 
 ### Explore
 ![Focusic Homepage](public/screenshots/explore.png)
 
+
 ### Liked Songs
 ![Focusic Homepage](public/screenshots/Liked.png)
+
 
 ### Timer
 ![Focusic Homepage](public/screenshots/pomo.png)

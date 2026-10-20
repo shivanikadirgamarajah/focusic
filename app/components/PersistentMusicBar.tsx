@@ -15,6 +15,7 @@ type YouTubePlayer = {
   getCurrentTime?: () => number;
   getDuration?: () => number;
   seekTo?: (seconds: number) => void;
+
 };
 
 type YouTubeEvent = {
@@ -30,6 +31,13 @@ declare global {
           height: string;
           width: string;
           videoId: string;
+          playerVars?: {
+            controls?: number;
+            fs?: number;
+            disablekb?: number;
+            iv_load_policy?: number;
+            playsinline?: number;
+          };
           events: {
             onReady: () => void;
             onStateChange: (event: YouTubeEvent) => void;
@@ -261,7 +269,15 @@ export default function PersistentMusicBar() {
           height: '270',
           width: '480',
           videoId: 'dQw4w9WgXcQ',
+          playerVars: {
+            controls: 0,
+            fs: 0,
+            disablekb: 1,
+            iv_load_policy: 3,
+            playsinline: 1,
+          },
           events: {
+
             onReady: () => {
               const selectedTrack = currentTrackRef.current;
               if (playerRef.current && selectedTrack?.videoId && !isNavigatingRef.current) {

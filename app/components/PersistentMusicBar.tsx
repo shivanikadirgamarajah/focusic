@@ -511,9 +511,9 @@ export default function PersistentMusicBar() {
 
   return (
     <div
-      className={`fixed bottom-0 left-0 right-0 z-[100] border-t ${isExpanded
-          ? "bg-gray-950/10 backdrop-blur-sm border-white/20"
-          : "bg-gray-900 border-gray-700"
+      className={`fixed bottom-0 left-0 right-0 z-[100] ${isExpanded
+        ? "bg-gray-950/10 backdrop-blur-sm"
+        : "bg-gray-900"
         }`}
     >
       <div
@@ -535,7 +535,10 @@ export default function PersistentMusicBar() {
 
       <div className="p-4">
         <div className="max-w-7xl mx-auto flex items-center gap-4">
-          <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0">
+          <div
+            className={`w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 ${isExpanded ? "hidden" : ""
+              }`}
+          >
             {currentTrack.thumbnail ? (
               <img
                 src={currentTrack.thumbnail}
@@ -571,8 +574,8 @@ export default function PersistentMusicBar() {
             <button
               onClick={toggleLike}
               className={`px-4 py-2 rounded-lg font-semibold transition ${isLiked
-                  ? "bg-red-600 hover:bg-red-700"
-                  : "bg-gray-700 hover:bg-gray-600"
+                ? "bg-red-600 hover:bg-red-700"
+                : "bg-gray-700 hover:bg-gray-600"
                 }`}
               title={isLiked ? "Unlike" : "Like"}
               aria-label={isLiked ? "Unlike" : "Like"}

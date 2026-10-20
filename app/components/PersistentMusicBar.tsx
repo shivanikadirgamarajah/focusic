@@ -510,16 +510,20 @@ export default function PersistentMusicBar() {
   if (!currentTrack) return null;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-gray-900 border-t border-gray-700 z-[100]">
+    <div
+      className={`fixed bottom-0 left-0 right-0 z-[100] border-t ${isExpanded
+          ? "bg-gray-950/10 backdrop-blur-sm border-white/20"
+          : "bg-gray-900 border-gray-700"
+        }`}
+    >
       <div
         ref={progressBarRef}
         onClick={handleProgressClick}
         className="w-full h-1 bg-gray-800 relative z-50 cursor-pointer group"
       >
         <div
-          className={`h-full bg-gradient-to-r from-blue-500 to-purple-500 relative ${
-            !isDragging ? "transition-all duration-300" : ""
-          }`}
+          className={`h-full bg-gradient-to-r from-blue-500 to-purple-500 relative ${!isDragging ? "transition-all duration-300" : ""
+            }`}
           style={{ width: `${progress}%` }}
         >
           <div
@@ -566,11 +570,10 @@ export default function PersistentMusicBar() {
             </button>
             <button
               onClick={toggleLike}
-              className={`px-4 py-2 rounded-lg font-semibold transition ${
-                isLiked
+              className={`px-4 py-2 rounded-lg font-semibold transition ${isLiked
                   ? "bg-red-600 hover:bg-red-700"
                   : "bg-gray-700 hover:bg-gray-600"
-              }`}
+                }`}
               title={isLiked ? "Unlike" : "Like"}
               aria-label={isLiked ? "Unlike" : "Like"}
             >
@@ -584,7 +587,7 @@ export default function PersistentMusicBar() {
                 <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
               </svg>
             </button>
-            
+
             <button
               onClick={() => {
                 initializePlayer();
@@ -592,7 +595,7 @@ export default function PersistentMusicBar() {
               }}
               className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg font-semibold transition"
             >
-              
+
               <span className="hidden sm:inline">{isPlaying ? "⏸" : "▶"}</span>
               <span className="sm:hidden">{isPlaying ? "⏸" : "▶"}</span>
             </button>

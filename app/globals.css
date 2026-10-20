@@ -25,37 +25,29 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
-html.focusic-expanded {
+html.focusic-expanded,
+html.focusic-expanded body {
   overflow: hidden;
 }
 
 html.focusic-expanded #youtube-player-container {
   position: fixed !important;
-  top: 0 !important;
-  left: 0 !important;
-  right: 0 !important;
-  bottom: 100px !important;
+  top: 50% !important;
+  left: 50% !important;
+  right: auto !important;
+  bottom: auto !important;
 
-  width: 100vw !important;
-  height: calc(100dvh - 100px) !important;
+  /* Fill the screen, cropping when necessary */
+  width: max(100vw, 177.7778dvh) !important;
+  height: max(100dvh, 56.25vw) !important;
+
+  transform: translate(-50%, -50%) !important;
 
   visibility: visible !important;
   display: block !important;
   z-index: 90 !important;
   border: 0 !important;
-  overflow: hidden !important;
   pointer-events: none !important;
-}
-
-html.focusic-expanded #youtube-player-container iframe {
-  display: block !important;
-  width: 100% !important;
-  height: 100% !important;
-  border: 0 !important;
-}
-
-html.focusic-expanded body {
-  overflow: hidden;
 }
 
 @keyframes colorShift-work {

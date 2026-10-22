@@ -1,59 +1,68 @@
+# Focusic
 
-Focusic is an AI-powered music and productivity web application designed to help users stay focused while studying, coding, or working. By combining personalized music recommendations with productivity tools, Focusic creates a customized environment that supports concentration and efficient work sessions.
+**AI-powered focus music meets productivity.**
 
-The application uses AI to recommend music based on users' listening preferences and activities, while evaluating tracks for their suitability for focused work. It also integrates YouTube music playback, a customizable Pomodoro timer, and activity tracking to help users manage their time and build consistent productivity habits.
+Focusic is a music and productivity web application that helps you stay focused while studying, coding, or working. It combines AI-powered music recommendations, YouTube playback, and productivity tools in one distraction-free workspace.
 
-Built with Next.js, React, TypeScript, and Tailwind CSS, Focusic brings music discovery and productivity management together in a single, user-friendly platform.
+**[ Try Focusic Live](https://focusic.vercel.app)**
 
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+## Features
 
-## Getting Started
+- **AI-Powered Music Recommendations** — Discover music based on your listening preferences and activities, with tracks evaluated for their suitability for focused work.
+- **YouTube Music Integration** — Play and explore music directly within the application.
+- **Pomodoro Timer** — Customize focus and break sessions to structure your work.
+- **Activity Tracking** — Track time spent on activities and develop consistent productivity habits.
+- **Personalized Music Library** — Explore recommended tracks and access your liked songs.
 
-First, run the development server:
+## Tech Stack
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Live Demo
-
-https://focusic.vercel.app
+| Technology | Purpose |
+|---|---|
+| Next.js | Web application framework |
+| React | Interactive user interface |
+| TypeScript | Type-safe development |
+| Tailwind CSS | Responsive styling |
+| YouTube | Integrated music playback |
+| Vercel | Deployment and hosting |
 
 ## Screenshots
-
 
 ### Homepage
 ![Focusic Homepage](public/screenshots/home.png)
 
-
-### Explore
-![Focusic Homepage](public/screenshots/explore.png)
-
+### Explore Music
+![Focusic Explore](public/screenshots/explore.png)
 
 ### Liked Songs
-![Focusic Homepage](public/screenshots/Liked.png)
+![Focusic Liked Songs](public/screenshots/Liked.png)
+
+### Pomodoro Timer
+![Focusic Pomodoro Timer](public/screenshots/pomo.png)
+
+## Getting Started
+
+Clone the repository:
+
+`git clone https://github.com/shivanikadirgamarajah/focusic.git`
+
+Navigate to the project directory:
+
+`cd focusic`
+
+Install dependencies:
+
+`npm install`
+
+Start the development server:
+
+`npm run dev`
+
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 
-### Timer
-![Focusic Homepage](public/screenshots/pomo.png)
+
+## About the Project
+
+Focusic was developed to explore how AI-powered music recommendations can be combined with time-management tools to create a more personalized productivity experience.
+
+The project brings together music discovery, integrated playback, and focus-session management in a single web application.

@@ -9,7 +9,7 @@ import { useMusic } from "@/app/context/MusicContext";
 import { Track } from "@/app/types";
 
 export default function Home() {
-  const { tracks, currentTrack, setTracks, setCurrentTrack, setIsPlaying, playNext } = useMusic();
+  const { tracks, currentTrack, setTracks, setCurrentTrack, setIsPlaying } = useMusic();
   const [isLoadingRecommendations, setIsLoadingRecommendations] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [hasPerformedSearch, setHasPerformedSearch] = useState(false);
@@ -18,7 +18,7 @@ export default function Home() {
   const [userPreferences, setUserPreferences] = useState<any>(null);
   const loadMoreSentinelRef = useRef<HTMLElement>(null);
   const loadMoreInFlightRef = useRef(false);
-  const loadMoreHandlerRef = useRef<() => Promise<void>>(async () => {});
+  const loadMoreHandlerRef = useRef<() => Promise<void>>(async () => { });
 
   const getTimestamp = () => {
     return Date.now();
@@ -59,8 +59,8 @@ export default function Home() {
       const res = await fetch("/api/ai/recommend", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          searchHistory, 
+        body: JSON.stringify({
+          searchHistory,
           listenHistory,
           userPreferences: {
             workType: userPreferences.workType,
@@ -108,7 +108,7 @@ export default function Home() {
     try {
       const userPreferences = JSON.parse(localStorage.getItem("userPreferences") || "{}");
       const workType = userPreferences.workType || "focus";
-      
+
       // Create a more personalized search query based on work type
       const searchQueries: Record<string, string> = {
         "programming": "ambient coding music lofi beats focus",
@@ -117,9 +117,9 @@ export default function Home() {
         "design": "creative focus music lo-fi beats",
         "default": "ambient focus music lofi beats",
       };
-      
+
       const searchQuery = searchQueries[workType.toLowerCase()] || searchQueries["default"];
-      
+
       const res = await fetch(
         `/api/youtube/search?q=${encodeURIComponent(searchQuery)}`
       );
@@ -143,7 +143,7 @@ export default function Home() {
       if (classifyData.result) {
         const classified = JSON.parse(classifyData.result);
         const timestamp = getTimestamp();
-        
+
         // Create a map of video IDs to durations from original videos
         const durationMap: Record<string, string> = {};
         videos.forEach((video: any) => {
@@ -151,7 +151,7 @@ export default function Home() {
             durationMap[video.videoId] = video.duration;
           }
         });
-        
+
         const withTimestamp = classified.map((track: Track) => ({
           ...track,
           timestamp,
@@ -202,7 +202,7 @@ export default function Home() {
           if (aiData.result) {
             const classifiedTracks = JSON.parse(aiData.result);
             const timestamp = getTimestamp();
-            
+
             // Create a map of video IDs to durations from original videos
             const durationMap: Record<string, string> = {};
             videos.forEach((video: any) => {
@@ -210,7 +210,7 @@ export default function Home() {
                 durationMap[video.videoId] = video.duration;
               }
             });
-            
+
             const withTimestamp = classifiedTracks.map((track: Track) => ({
               ...track,
               timestamp,
@@ -247,7 +247,7 @@ export default function Home() {
         duration: video.duration || "0:00",
         timestamp,
       }));
-      
+
       setTracks(fallbackTracks);
       if (fallbackTracks.length > 0) {
         // Only set currentTrack if not already set to first result
@@ -262,6 +262,24 @@ export default function Home() {
       console.error("Error performing search:", error);
       await loadDefaultRecommendations();
     }
+  }
+
+  function handleShuffle() {
+    if (tracks.length <= 1) return;
+
+    // Exclude the currently playing track
+    const availableTracks = tracks.filter(
+      (track) => track.videoId !== currentTrack?.videoId
+    );
+
+    if (availableTracks.length === 0) return;
+
+    // Pick a random track
+    const randomIndex = Math.floor(Math.random() * availableTracks.length);
+    const randomTrack = availableTracks[randomIndex];
+
+    setCurrentTrack(randomTrack);
+    setIsPlaying(true);
   }
 
   async function handleLoadMore() {
@@ -397,7 +415,7 @@ export default function Home() {
         )}
 
         {hasPerformedSearch && currentTrack && (
-          <TrackPlayer track={currentTrack} onNext={playNext} />
+          <TrackPlayer track={currentTrack} onNext={handleShuffle} />
         )}
       </div>
 

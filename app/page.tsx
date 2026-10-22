@@ -49,8 +49,27 @@ export default function Home() {
       const userPreferences = JSON.parse(localStorage.getItem("userPreferences") || "{}");
       const likedSongs = JSON.parse(localStorage.getItem("likedSongs") || "[]");
       const focusActivity = JSON.parse(localStorage.getItem("focusActivity") || "{}");
+      // Number of distinct days with recorded focus activity
+      const focusActiveDays = Object.keys(focusActivity).length;
 
-      if (searchHistory.length === 0 && listenHistory.length === 0 && likedSongs.length === 0) {
+      // Accumulated tracked focus time, in minutes
+      const totalFocusMinutes =
+        typeof userPreferences.totalFocusTime === "number"
+          ? userPreferences.totalFocusTime
+          : 0;
+
+      const hasPreferences =
+        Boolean(userPreferences.workType) ||
+        typeof userPreferences.focusLength === "number" ||
+        typeof userPreferences.breakLength === "number";
+      if (
+        searchHistory.length === 0 &&
+        listenHistory.length === 0 &&
+        likedSongs.length === 0 &&
+        !hasPreferences &&
+        focusActiveDays === 0 &&
+        totalFocusMinutes === 0
+      ) {
         // No history, load default recoammendations
         await loadDefaultRecommendations();
         return;
@@ -68,8 +87,11 @@ export default function Home() {
             focusLength: userPreferences.focusLength,
             breakLength: userPreferences.breakLength,
           },
-          likedSongsPreview: likedSongs.slice(0, 10).map((s: any) => s.title),
-          focusSessionCount: Object.keys(focusActivity).length,
+          likedSongsPreview: likedSongs
+            .slice(0, 10)
+            .map((s: { title: string }) => s.title),
+          focusActiveDays,
+          totalFocusMinutes,
         }),
       });
 

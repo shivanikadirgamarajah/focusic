@@ -7,6 +7,7 @@ import { Track } from "@/app/types";
 const likedSongsUpdatedEvent = "focusic:likedSongsUpdated";
 
 type YouTubePlayer = {
+  getIframe?: () => HTMLIFrameElement;
   loadVideoById: (videoId: string) => void;
   cueVideoById?: (videoId: string) => void;
   pauseVideo?: () => void;
@@ -268,7 +269,7 @@ export default function PersistentMusicBar() {
         playerRef.current = new youtube.Player('youtube-player-container', {
           height: '270',
           width: '480',
-          videoId: 'dQw4w9WgXcQ',
+          videoId: currentTrackRef.current?.videoId ?? "",
           playerVars: {
             controls: 0,
             fs: 0,
@@ -279,6 +280,7 @@ export default function PersistentMusicBar() {
           events: {
 
             onReady: () => {
+              window.dispatchEvent(new Event("focusic:youtube-ready"));
               const selectedTrack = currentTrackRef.current;
               if (playerRef.current && selectedTrack?.videoId && !isNavigatingRef.current) {
                 try {
@@ -359,7 +361,95 @@ export default function PersistentMusicBar() {
       clearTimeout(timer);
     };
   }, [initializePlayer]);
+  useEffect(() => {
+    let frame = 0;
+    let observedSlot: HTMLElement | null = null;
 
+    const resizeObserver = new ResizeObserver(scheduleUpdate);
+
+    function positionPlayer() {
+      const iframe = playerRef.current?.getIframe?.();
+      if (!iframe) return;
+
+      const slot = document.getElementById("focusic-video-slot");
+
+      if (slot !== observedSlot) {
+        if (observedSlot) resizeObserver.unobserve(observedSlot);
+        if (slot) resizeObserver.observe(slot);
+        observedSlot = slot;
+      }
+
+      if (!currentTrackRef.current) {
+        iframe.style.visibility = "hidden";
+        return;
+      }
+
+      const rect = slot?.getBoundingClientRect();
+
+      const showInPreview = Boolean(
+        rect &&
+        rect.width >= 200 &&
+        rect.height >= 200 &&
+        rect.bottom > 0 &&
+        rect.top < window.innerHeight
+      );
+
+      if (showInPreview && rect) {
+        Object.assign(iframe.style, {
+          position: "fixed",
+          left: `${rect.left}px`,
+          top: `${rect.top}px`,
+          right: "auto",
+          bottom: "auto",
+          width: `${rect.width}px`,
+          height: `${rect.height}px`,
+          zIndex: "90",
+          visibility: "visible",
+          pointerEvents: "none",
+          border: "0",
+        });
+      } else {
+        Object.assign(iframe.style, {
+          position: "fixed",
+          left: "-9999px",
+          top: "0px",
+          right: "auto",
+          bottom: "auto",
+          width: "360px",
+          height: "203px",
+          visibility: "hidden",
+          pointerEvents: "none",
+        });
+      }
+    }
+
+    function scheduleUpdate() {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(positionPlayer);
+    }
+
+    const observer = new MutationObserver(scheduleUpdate);
+
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+    });
+
+    window.addEventListener("scroll", scheduleUpdate, true);
+    window.addEventListener("resize", scheduleUpdate);
+    window.addEventListener("focusic:youtube-ready", scheduleUpdate);
+
+    scheduleUpdate();
+
+    return () => {
+      cancelAnimationFrame(frame);
+      observer.disconnect();
+      resizeObserver.disconnect();
+      window.removeEventListener("scroll", scheduleUpdate, true);
+      window.removeEventListener("resize", scheduleUpdate);
+      window.removeEventListener("focusic:youtube-ready", scheduleUpdate);
+    };
+  }, [currentTrack?.videoId]);
   // Load video when track changes
   useEffect(() => {
     if (!currentTrack?.videoId || !playerRef.current) return;

@@ -62,22 +62,11 @@ export default function TrackPlayer({ track, onNext }: TrackPlayerProps) {
     <section className="space-y-4">
       <h2 className="text-2xl font-bold">{track.title}</h2>
 
-      <div 
-        className="relative aspect-video bg-black rounded-lg overflow-hidden cursor-pointer hover:ring-2 hover:ring-blue-500 transition"
+      <div
+        id="focusic-video-slot"
+        className="relative aspect-video min-h-[200px] w-full bg-black rounded-lg overflow-hidden cursor-pointer"
         onClick={handlePlayPause}
-      >
-        <iframe
-          width="100%"
-          height="100%"
-          src={`https://www.youtube.com/embed/${track.videoId}?autoplay=${shouldPlayPreview ? "1" : "0"}&mute=1&controls=0&disablekb=1&fs=0&iv_load_policy=3&modestbranding=1&playsinline=1&rel=0`}
-          title={track.title}
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          allowFullScreen
-          className="border-0"
-          style={{ pointerEvents: 'none' }}
-        ></iframe>
-      </div>
-
+      />
       <div className="flex gap-3">
         <button
           onClick={handlePlayPause}
@@ -87,11 +76,10 @@ export default function TrackPlayer({ track, onNext }: TrackPlayerProps) {
         </button>
         <button
           onClick={() => setShowInsights(!showInsights)}
-          className={`rounded-lg px-4 py-2 font-serif text-lg font-bold italic transition ${
-            showInsights
+          className={`rounded-lg px-4 py-2 font-serif text-lg font-bold italic transition ${showInsights
               ? "bg-purple-600 text-white hover:bg-purple-700"
               : "bg-gray-700 text-purple-200 hover:bg-gray-600"
-          }`}
+            }`}
           title="Insights"
           aria-label="Insights"
         >
@@ -105,9 +93,8 @@ export default function TrackPlayer({ track, onNext }: TrackPlayerProps) {
         </button>
         <button
           onClick={handleToggleLike}
-          className={`rounded-lg px-4 py-2 font-semibold transition ${
-            isLiked ? "bg-red-600 hover:bg-red-700" : "bg-gray-700 hover:bg-gray-600"
-          }`}
+          className={`rounded-lg px-4 py-2 font-semibold transition ${isLiked ? "bg-red-600 hover:bg-red-700" : "bg-gray-700 hover:bg-gray-600"
+            }`}
           title={isLiked ? "Unlike" : "Like"}
           aria-label={isLiked ? "Unlike" : "Like"}
         >
@@ -149,5 +136,5 @@ export default function TrackPlayer({ track, onNext }: TrackPlayerProps) {
       )}
     </section>
   );
-  
+
 }

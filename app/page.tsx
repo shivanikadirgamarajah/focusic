@@ -393,19 +393,29 @@ export default function Home() {
 
   loadMoreHandlerRef.current = handleLoadMore;
 
+
   useEffect(() => {
     const sentinel = loadMoreSentinelRef.current;
     if (!sentinel || !nextPageToken) return;
 
-    const observer = new IntersectionObserver(([entry]) => {
-      if (entry?.isIntersecting && !isLoadingMore) {
-        void loadMoreHandlerRef.current();
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry?.isIntersecting && !isLoadingMore) {
+          void loadMoreHandlerRef.current();
+        }
+      },
+      {
+        root: null,
+        rootMargin: "0px 0px 50% 0px",
+        threshold: 0,
       }
-    });
+    );
 
     observer.observe(sentinel);
+
     return () => observer.disconnect();
   }, [nextPageToken, isLoadingMore, tracks.length]);
+
 
   function handleSearch(classifiedTracks: Track[], metadata?: { query: string; nextPageToken: string | null }) {
     setHasPerformedSearch(true);

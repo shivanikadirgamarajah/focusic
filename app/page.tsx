@@ -7,6 +7,7 @@ import TrackList from "@/app/components/TrackList";
 import TypedText from "@/app/components/TypedText";
 import { useMusic } from "@/app/context/MusicContext";
 import { Track } from "@/app/types";
+import { pickRandomNextTrack } from "@/app/lib/shuffle";
 
 export default function Home() {
   const { tracks, currentTrack, setTracks, setCurrentTrack, setIsPlaying } = useMusic();
@@ -265,21 +266,29 @@ export default function Home() {
   }
 
   function handleShuffle() {
-    if (tracks.length <= 1) return;
+    // if (tracks.length <= 1) return;
 
-    // Exclude the currently playing track
-    const availableTracks = tracks.filter(
-      (track) => track.videoId !== currentTrack?.videoId
-    );
+    // // Exclude the currently playing track
+    // const availableTracks = tracks.filter(
+    //   (track) => track.videoId !== currentTrack?.videoId
+    // );
 
-    if (availableTracks.length === 0) return;
+    // if (availableTracks.length === 0) return;
 
-    // Pick a random track
-    const randomIndex = Math.floor(Math.random() * availableTracks.length);
-    const randomTrack = availableTracks[randomIndex];
+    // // Pick a random track
+    // const randomIndex = Math.floor(Math.random() * availableTracks.length);
+    // const randomTrack = availableTracks[randomIndex];
 
-    setCurrentTrack(randomTrack);
-    setIsPlaying(true);
+    // setCurrentTrack(randomTrack);
+    // setIsPlaying(true);
+    function handleShuffle() {
+      const nextTrack = pickRandomNextTrack(tracks, currentTrack);
+
+      if (!nextTrack) return;
+
+      setCurrentTrack(nextTrack);
+      setIsPlaying(true);
+    }
   }
 
   async function handleLoadMore() {

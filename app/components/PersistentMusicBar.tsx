@@ -519,7 +519,8 @@ export default function PersistentMusicBar() {
       <div
         ref={progressBarRef}
         onClick={handleProgressClick}
-        className="w-full h-1 bg-gray-800 relative z-50 cursor-pointer group"
+        className={`w-full h-1 bg-gray-800 relative z-50 cursor-pointer group transition-opacity duration-300 ${isExpanded ? "opacity-10 hover:opacity-100" : "opacity-100"
+          }`}
       >
         <div
           className={`h-full bg-gradient-to-r from-blue-500 to-purple-500 relative ${!isDragging ? "transition-all duration-300" : ""

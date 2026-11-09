@@ -5,7 +5,6 @@ import Link from "next/link";
 import PomodoroTimer from "@/app/components/PomodoroTimer";
 import Onboarding, { UserPreferences } from "@/app/components/Onboarding";
 import QuickSettings from "@/app/components/QuickSettings";
-import { useMusic } from "@/app/context/MusicContext";
 
 export default function TimerPage() {
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -14,11 +13,20 @@ export default function TimerPage() {
 
   useEffect(() => {
     const saved = localStorage.getItem("userPreferences");
-    if (saved) {
-      setPreferences(JSON.parse(saved));
-    } else {
-      setShowOnboarding(true);
-    }
+    const timer = window.setTimeout(() => {
+      if (saved) {
+        try {
+          setPreferences(JSON.parse(saved) as UserPreferences);
+        } catch (error) {
+          console.error("Error loading user preferences:", error);
+          setShowOnboarding(true);
+        }
+      } else {
+        setShowOnboarding(true);
+      }
+    }, 0);
+
+    return () => window.clearTimeout(timer);
   }, []);
 
   function handleOnboardingComplete(prefs: UserPreferences) {
@@ -67,4 +75,3 @@ export default function TimerPage() {
     </main>
   );
 }
-

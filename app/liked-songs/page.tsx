@@ -4,10 +4,12 @@ import { useMusic } from "@/app/context/MusicContext";
 import TrackList from "@/app/components/TrackList";
 import TrackPlayer from "@/app/components/TrackPlayer";
 import { useEffect, useState } from "react";
+import type { Track } from "@/app/types";
 
 export default function LikedSongsPage() {
-  const { currentTrack, setCurrentTrack, isPlaying, setIsPlaying, tracks, setTracks } = useMusic();
-  const [likedSongs, setLikedSongs] = useState<any[]>([]);
+  const { currentTrack, setCurrentTrack, setIsPlaying, setTracks } = useMusic();
+  const [likedSongs, setLikedSongs] =
+    useState<Track[]>([]);
 
   // Load liked songs from localStorage
   useEffect(() => {
@@ -34,7 +36,7 @@ export default function LikedSongsPage() {
     };
   }, []);
 
-  const handleSelectTrack = (track: any) => {
+  const handleSelectTrack = (track: Track) => {
     setCurrentTrack(track);
     setTracks(likedSongs);
     setIsPlaying(true);

@@ -50,8 +50,8 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
         {step === 1 && (
           <div className="space-y-6">
             <div>
-              <h2 className="text-3xl font-bold text-white mb-2">What's your name? 👋</h2>
-              <p className="text-gray-400">Let's personalize your experience</p>
+              <h2 className="text-3xl font-bold text-white mb-2">What&apos;s your name? 👋</h2>
+              <p className="text-gray-400">Let&apos;s personalize your experience</p>
             </div>
             <input
               type="text"

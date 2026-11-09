@@ -1,22 +1,14 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import type { MouseEvent } from "react";
 
 export default function Header() {
   const pathname = usePathname();
-  const [mounted, setMounted] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
   const getLinkClass = (href: string) => {
-    if (!mounted) {
-      return "font-semibold transition text-gray-300 hover:text-white";
-    }
     return `font-semibold transition ${
       pathname === href
         ? "text-blue-400"

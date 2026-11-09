@@ -274,7 +274,9 @@ export default function ThemePage() {
     }
   }
 
-  loadMoreHandlerRef.current = handleLoadMore;
+  useEffect(() => {
+    loadMoreHandlerRef.current = handleLoadMore;
+  }, [handleLoadMore]);
 
   useEffect(() => {
     const sentinel = loadMoreSentinelRef.current;

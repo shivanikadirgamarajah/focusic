@@ -288,29 +288,14 @@ export default function Home() {
   }
 
   function handleShuffle() {
-    // if (tracks.length <= 1) return;
-
-    // // Exclude the currently playing track
-    // const availableTracks = tracks.filter(
-    //   (track) => track.videoId !== currentTrack?.videoId
-    // );
-
-    // if (availableTracks.length === 0) return;
-
-    // // Pick a random track
-    // const randomIndex = Math.floor(Math.random() * availableTracks.length);
-    // const randomTrack = availableTracks[randomIndex];
-
-    // setCurrentTrack(randomTrack);
-    // setIsPlaying(true);
-    function handleShuffle() {
+  
       const nextTrack = pickRandomNextTrack(tracks, currentTrack);
 
       if (!nextTrack) return;
 
       setCurrentTrack(nextTrack);
       setIsPlaying(true);
-    }
+    
   }
 
   async function handleLoadMore() {

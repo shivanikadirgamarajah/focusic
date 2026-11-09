@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 
 interface TypedTextProps {
   strings?: string[];
@@ -23,7 +23,7 @@ export default function TypedText({
   showCursor = true,
   className = "",
 }: TypedTextProps) {
-  const textArray = text ? [text] : strings;
+  const textArray = useMemo(() => (text ? [text] : strings), [text, strings]);
   const [displayedText, setDisplayedText] = useState("");
   const [index, setIndex] = useState(0);
   const [stringIndex, setStringIndex] = useState(0);
@@ -54,9 +54,11 @@ export default function TypedText({
       }, backSpeed);
     } else if (isDeleting && displayedText.length === 0) {
       // Move to next string
-      setIsDeleting(false);
-      setIndex(0);
-      setStringIndex((prev) => (loop ? (prev + 1) % textArray.length : prev + 1));
+      timer = setTimeout(() => {
+        setIsDeleting(false);
+        setIndex(0);
+        setStringIndex((prev) => (loop ? (prev + 1) % textArray.length : prev + 1));
+      }, 0);
     }
 
     return () => clearTimeout(timer);

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { Track } from "@/app/types";
 import { useMusic } from "@/app/context/MusicContext";
 
@@ -12,20 +12,31 @@ interface TrackPlayerProps {
 export default function TrackPlayer({ track, onNext }: TrackPlayerProps) {
 
   const [showInsights, setShowInsights] = useState(false);
-  const [isLiked, setIsLiked] = useState(false);
   const { setIsPlaying, setCurrentTrack, isPlaying, currentTrack } = useMusic();
   const isCurrentTrack = currentTrack?.videoId === track.videoId;
   const shouldPlayPreview = isCurrentTrack && isPlaying;
 
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem("likedSongs");
-      const likedSongs = saved ? (JSON.parse(saved) as Track[]) : [];
-      setIsLiked(likedSongs.some((likedTrack) => likedTrack.videoId === track.videoId));
-    } catch (error) {
-      console.error("Error loading liked songs:", error);
-    }
-  }, [track.videoId]);
+  const isLiked = useSyncExternalStore(
+    (onStoreChange) => {
+      window.addEventListener("likedSongsChanged", onStoreChange);
+      window.addEventListener("focusic:likedSongsUpdated", onStoreChange);
+      return () => {
+        window.removeEventListener("likedSongsChanged", onStoreChange);
+        window.removeEventListener("focusic:likedSongsUpdated", onStoreChange);
+      };
+    },
+    () => {
+      try {
+        const saved = localStorage.getItem("likedSongs");
+        const likedSongs = saved ? (JSON.parse(saved) as Track[]) : [];
+        return likedSongs.some((likedTrack) => likedTrack.videoId === track.videoId);
+      } catch (error) {
+        console.error("Error loading liked songs:", error);
+        return false;
+      }
+    },
+    () => false
+  );
 
   function handlePlayPause() {
     if (isCurrentTrack) {
@@ -41,7 +52,6 @@ export default function TrackPlayer({ track, onNext }: TrackPlayerProps) {
       const saved = localStorage.getItem("likedSongs");
       const likedSongs = saved ? (JSON.parse(saved) as Track[]) : [];
       const existingIndex = likedSongs.findIndex((likedTrack) => likedTrack.videoId === track.videoId);
-      const nextIsLiked = existingIndex === -1;
 
       if (existingIndex > -1) {
         likedSongs.splice(existingIndex, 1);
@@ -50,7 +60,6 @@ export default function TrackPlayer({ track, onNext }: TrackPlayerProps) {
       }
 
       localStorage.setItem("likedSongs", JSON.stringify(likedSongs));
-      setIsLiked(nextIsLiked);
       window.dispatchEvent(new CustomEvent("likedSongsChanged"));
       window.dispatchEvent(new Event("focusic:likedSongsUpdated"));
     } catch (error) {

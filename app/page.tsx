@@ -4,10 +4,18 @@ import { useEffect, useRef, useState } from "react";
 import MusicSearch from "@/app/components/MusicSearch";
 import TrackPlayer from "@/app/components/TrackPlayer";
 import TrackList from "@/app/components/TrackList";
-import TypedText from "@/app/components/TypedText";
 import { useMusic } from "@/app/context/MusicContext";
 import { Track } from "@/app/types";
 import { pickRandomNextTrack } from "@/app/lib/shuffle";
+
+type UserPreferences = {
+  workType?: string;
+  focusLength?: number;
+  breakLength?: number;
+  totalFocusTime?: number;
+};
+
+type VideoResult = Pick<Track, "videoId" | "title" | "channel" | "thumbnail" | "duration">;
 
 export default function Home() {
   const { tracks, currentTrack, setTracks, setCurrentTrack, setIsPlaying } = useMusic();
@@ -16,7 +24,7 @@ export default function Home() {
   const [hasPerformedSearch, setHasPerformedSearch] = useState(false);
   const [nextPageToken, setNextPageToken] = useState<string | null>(null);
   const [lastSearchQuery, setLastSearchQuery] = useState<string | null>(null);
-  const [userPreferences, setUserPreferences] = useState<any>(null);
+  const [userPreferences, setUserPreferences] = useState<UserPreferences | null>(null);
   const loadMoreSentinelRef = useRef<HTMLElement>(null);
   const loadMoreInFlightRef = useRef(false);
   const loadMoreHandlerRef = useRef<() => Promise<void>>(async () => { });
@@ -28,18 +36,18 @@ export default function Home() {
   // Load user preferences on mount
   useEffect(() => {
     const saved = localStorage.getItem("userPreferences");
-    if (saved) {
-      setUserPreferences(JSON.parse(saved));
-    }
-  }, []);
+    if (!saved) return;
 
-  useEffect(() => {
-    // Only load recommendations if we haven't performed a search yet AND there are no tracks loaded
-    // This prevents overriding the current track when navigating back to home
-    if (!hasPerformedSearch && tracks.length === 0) {
-      loadRecommendations();
-    }
-  }, [hasPerformedSearch, tracks.length]);
+    const timer = window.setTimeout(() => {
+      try {
+        setUserPreferences(JSON.parse(saved) as UserPreferences);
+      } catch (error) {
+        console.error("Error loading user preferences:", error);
+      }
+    }, 0);
+
+    return () => window.clearTimeout(timer);
+  }, []);
 
   async function loadRecommendations() {
     try {
@@ -127,6 +135,15 @@ export default function Home() {
     }
   }
 
+  useEffect(() => {
+    if (!hasPerformedSearch && tracks.length === 0) {
+      const timer = window.setTimeout(() => {
+        void loadRecommendations();
+      }, 0);
+      return () => window.clearTimeout(timer);
+    }
+  }, [hasPerformedSearch, tracks.length]);
+
   async function loadDefaultRecommendations() {
     try {
       const userPreferences = JSON.parse(localStorage.getItem("userPreferences") || "{}");
@@ -146,7 +163,10 @@ export default function Home() {
       const res = await fetch(
         `/api/youtube/search?q=${encodeURIComponent(searchQuery)}`
       );
-      const { videos, nextPageToken } = await res.json();
+      const { videos, nextPageToken } = (await res.json()) as {
+        videos: VideoResult[];
+        nextPageToken?: string;
+      };
       setLastSearchQuery(searchQuery);
       setNextPageToken(nextPageToken || null);
 
@@ -169,7 +189,7 @@ export default function Home() {
 
         // Create a map of video IDs to durations from original videos
         const durationMap: Record<string, string> = {};
-        videos.forEach((video: any) => {
+        videos.forEach((video) => {
           if (video.duration) {
             durationMap[video.videoId] = video.duration;
           }
@@ -203,7 +223,10 @@ export default function Home() {
       const ytRes = await fetch(
         `/api/youtube/search?q=${encodeURIComponent(query + " ambient focus music")}`
       );
-      const { videos, nextPageToken } = await ytRes.json();
+      const { videos, nextPageToken } = (await ytRes.json()) as {
+        videos: VideoResult[];
+        nextPageToken?: string;
+      };
       setLastSearchQuery(`${query} ambient focus music`);
       setNextPageToken(nextPageToken || null);
 
@@ -228,7 +251,7 @@ export default function Home() {
 
             // Create a map of video IDs to durations from original videos
             const durationMap: Record<string, string> = {};
-            videos.forEach((video: any) => {
+            videos.forEach((video) => {
               if (video.duration) {
                 durationMap[video.videoId] = video.duration;
               }
@@ -261,7 +284,7 @@ export default function Home() {
 
       // Fallback: Use raw videos with default focus scores
       const timestamp = getTimestamp();
-      const fallbackTracks = videos.map((video: any, index: number) => ({
+      const fallbackTracks = videos.map((video, index) => ({
         ...video,
         focusScore: 7 - (index * 0.5),
         genre: "ambient",
@@ -319,13 +342,13 @@ export default function Home() {
 
       const timestamp = getTimestamp();
       const durationMap: Record<string, string> = {};
-      videos.forEach((video: any) => {
+      videos.forEach((video) => {
         if (video.duration) {
           durationMap[video.videoId] = video.duration;
         }
       });
 
-      let moreTracks: Track[] = videos.map((video: any, index: number) => ({
+      let moreTracks: Track[] = videos.map((video, index) => ({
         ...video,
         focusScore: Math.max(7, 8 - index * 0.2),
         genre: "ambient",
@@ -376,7 +399,9 @@ export default function Home() {
     }
   }
 
-  loadMoreHandlerRef.current = handleLoadMore;
+  useEffect(() => {
+    loadMoreHandlerRef.current = handleLoadMore;
+  }, [handleLoadMore]);
 
 
   useEffect(() => {
